@@ -1,139 +1,106 @@
-# ⚗️ The Grand Alchemist's Archive
+# ⚗️ The Grand Alchemist's Archive (Pustaka Agung Alkemis)
 
 > *"Ignis Aurum Probat — Scientia Mentem Ditavit"*  
-> Perpustakaan sekolah interaktif bertema **Medieval Fantasy & Magic Alchemy** yang memadukan estetika arsip kuno, gamifikasi literasi siswa, peramu rekomendasi buku (*Alchemical Mixer*), dan persistensi **Supabase** dengan *automatic local mock fallback*.
+> Platform perpustakaan sekolah interaktif bertema **Medieval Fantasy & Magic Alchemy** yang memadukan estetika arsip kuno, sistem autentikasi **3 Role (Admin, Guru, Siswa)**, alur persetujuan peminjaman fisik (*Approval Workflow*), manajemen stok eksemplar buku, fitur baca online interaktif (**E-Grimoire Reader Modal**), dan integrasi cloud **Supabase** dengan *smart offline fallback* (**Local Grimoire Mode**).
 
 ---
 
-## ✨ Sorotan & Fitur Utama
+## 🌟 Sorotan & Fitur Pembaruan (3-Role System & E-Grimoire)
 
-### 1. 🏛️ The Great Hall (Beranda Utama)
-- **Scrying Mirror Search:** Pencarian cepat langsung menuju katalog *Vault of Tomes*.
-- **Archive Telemetry:** Statistik total grimoire, cendekiawan aktif, dan ramuan yang telah diracik.
-- **Featured Grimoires:** Koleksi kitab unggulan pilihan kurator.
-- **Guild Quest Board:** Tantangan membaca berhadiah **Scholar XP** dan lencana gelar (*Badges*).
+### 1. 🧙‍♂️ Sistem Autentikasi 3 Role & Demo Quick-Switcher
+- **Top Role Switcher Bar (Banner Uji Coba Cepat):** Tersemat di bagian paling atas layar untuk berpindah peran secara instan dengan 1 klik tanpa harus mengetik password berulang kali:
+  - **👑 Admin (Grand Archivist):** Pengurus perpustakaan & kurator arsip.
+  - **📜 Guru (Guild Mentor — Bpk. Hendra Wijaya, M.Pd.):** Pengampu mata pelajaran yang dapat mengajukan peminjaman buku paket untuk kelas siswa.
+  - **⚔️ Siswa (Apprentice Scholar — Arya Pendragon):** Siswa anggota serikat literasi (ID: `ARC-2026-089`).
+- **Modal Login Guild Gatekeeper:** Mendukung login dengan Email & Password (terkoneksi ke Supabase Auth jika aktif, atau menggunakan kredensial demo lokal).
 
-### 2. 📚 Vault of Tomes (Katalog Pustaka)
-- Pencarian berdasarkan judul, sub-judul fantasi, pengarang, atau sinopsis.
-- Filter berdasarkan **Schools of Lore** (*Bard's Tales*, *Alchemy & Natural Science*, *Ancient Lore & Chronicles*, *Artificer & Digital Weave*, *High Philosophy & Mind*) dan status ketersediaan (*In the Vault* vs *Summoned*).
-- **Open Ancient Scroll Inspection Modal:** Klik kartu buku mana saja untuk membuka gulungan grimoire berisi sinopsis lengkap, **ISBN**, **lokasi rak**, **jumlah halaman**, hadiah **XP membaca**, serta daftar **Scholar's Notes** (ulasan siswa).
+### 2. 📖 E-Grimoire Reader Modal (Fitur Baca Buku Digital)
+- **Tersedia Kapan Saja:** Tombol *"📖 Baca Digital (Astral Grimoire)"* selalu dapat diakses di katalog *Vault of Tomes*, detail buku, maupun rekomendasi *Mixer*.
+- **Solusi Saat Stok Fisik Habis:** Jika buku fisik habis dipinjam (`availableStock === 0`), kartu buku menampilkan lencana bercahaya *"Stok Fisik Habis • Tersedia Versi Digital"* dan mengarahkan pengguna membaca secara daring.
+- **Fitur Pembaca Interaktif:**
+  - Navigasi halaman/bab (Prev / Next) dengan indikator bab.
+  - Pengatur ukuran huruf font (S, M, L, XL).
+  - Mode tema membaca: *Aged Parchment* (terang klasik) atau *Midnight Grimoire* (gelap mistis).
+  - Indikator kemajuan membaca (*Progress Bar*).
+  - Tombol **Klaim +75 XP** di halaman terakhir setelah menuntaskan pembacaan.
 
-### 3. 🧪 Alchemical Mixer (Peramu Rekomendasi Buku)
-- Pilih hingga **3 Reagen Suasana Hati** (*Mysterious Shadow*, *Scientific Spark*, *Fast-Paced Wind*, *Ancient Wisdom*, *Heartwarming Ember*, *Arcane Philosophy*, *Artificer's Gear*, *Nature's Elixir*).
-- Animasi kuali alkimia yang menghasilkan ramuan rekomendasi buku lengkap dengan persentase resonansi kecocokan.
+### 3. ⚖️ Alur Persetujuan Peminjaman (Approval Workflow)
+- **Pengajuan Siswa:** Siswa meminjam buku perorangan (`quantity: 1`). Pengajuan berstatus `'pending'` masuk ke antrean Admin.
+- **Pengajuan Kelas Guru:** Guru mengajukan peminjaman buku paket kelas (jumlah hingga batas stok tersedia di rak, nama kelas rombel, dan catatan keperluan praktikum/kurikulum).
+- **Persetujuan & Penolakan Admin:**
+  - **Tombol Approve (Setujui):** Status pinjaman berubah menjadi `'approved'`, dan otomatis memotong `availableStock` buku fisik di rak.
+  - **Tombol Reject (Tolak):** Admin memasukkan alasan penolakan (misal: buku dialokasikan untuk ujian praktikum), status berubah menjadi `'rejected'`, dan catatan alasan tampil transparan di dashboard peminjam.
+  - **Verifikasi Pengembalian:** Mengubah status menjadi `'returned'` dan otomatis memulihkan stok fisik buku ke rak.
 
-### 4. 🛡️ Scholar's Sanctum (Profil Siswa & Gamifikasi)
-- **Guild Member Card:** Identitas cendekiawan, level, pangkat serikat dinamis, *XP progress bar*, dan koleksi lencana (*Potion Badges*).
-- **Currently Summoned Tomes:** Daftar buku yang sedang dipinjam lengkap dengan **Mana Timer** (sisa hari sebelum jatuh tempo).
-- **Return & Scholar's Note:** Kembalikan buku sambil memberi **rating bintang (1–5)** dan ulasan tertulis yang otomatis menambah **Scholar XP**, memicu **Level Up** saat melampaui batas XP, dan memperbarui ulasan buku di katalog.
-
-### 5. 📜 Archivist's Chamber (Panel Kurator / Admin)
-- **Inscribe New Grimoire:** Formulir penambahan kitab baru ke katalog.
-- **Active Loan Ledger:** Pantau seluruh peminjaman aktif dengan aksi **Extend (+7 Hari)** atau **Recall** (penarikan paksa ke rak vault).
-- **Lore Distribution Analytics:** Ringkasan distribusi koleksi di tiap cabang keilmuan.
-
-### 6. 🔔 Magical Scroll Pop-Up & Arcane Chimes
-- Notifikasi pop-up berbentuk **gulungan sihir** disertai efek suara lembut (*Web Audio API*, dapat di-mute/unmute dari navbar) saat meminjam buku, meracik rekomendasi, mengklaim XP, atau naik level (*Level Up*).
+### 4. 📦 Manajemen Stok Inventaris Eksemplar Buku
+- Setiap buku memiliki properti `totalStock` (total kepemilikan perpustakaan) dan `availableStock` (stok fisik yang tersedia saat ini di rak).
+- Di **Archivist's Chamber**, Admin dapat menyesuaikan stok secara langsung menggunakan tombol cepat `[+]` dan `[-]` dengan sinkronisasi seketika ke database.
 
 ---
 
-## 🎨 Sistem Visual & Tema
+## 🏛️ Ruang & Navigasi Berdasarkan Role
 
-| Elemen | Nilai | Karakter |
+| Tab Ruangan | Hak Akses | Deskripsi Fitur |
 | :--- | :--- | :--- |
-| **Background Primary** | `#12100E` | *Obsidian Wood* |
-| **Surface / Cards** | `#1E1916` | *Dark Leather* + border emas (`#D4AF37` 20%) |
-| **Text Primary / Muted** | `#F4E8C1` / `#A89F91` | *Aged Parchment* |
-| **Accents** | `#D4AF37` / `#10B981` / `#8B5CF6` | *Alchemical Gold*, *Emerald Potion*, *Arcane Purple* |
-| **Typography** | `Cinzel` & `Plus Jakarta Sans` | Judul seremonial & teks modern |
+| **The Great Hall** | *Semua Role* | Beranda utama, pencarian *Scrying Mirror*, koleksi unggulan, dan statistik pustaka |
+| **Alchemical Mixer** | *Semua Role* | Peramu rekomendasi buku berdasarkan kombinasi 1–3 esensi alkimia suasana hati |
+| **Vault of Tomes** | *Semua Role* | Katalog buku lengkap, filter kategori, status stok fisik, dan tombol E-Grimoire Reader |
+| **Scholar's Sanctum** | *Khusus Siswa* | Profil Arya Pendragon, kartu serikat, XP progress bar, antrean permohonan pinjam, buku aktif dengan *Mana Decay Timer*, ritual pengembalian (+100 XP), misi dan lencana |
+| **Mentor's Sanctum** | *Khusus Guru* | Formulir pengajuan peminjaman paket buku kelas & dashboard pemantauan status pinjaman kelas |
+| **Archivist's Chamber** | *Khusus Admin* | Antrean persetujuan pinjaman (*Loan Approval Queue*), sirkulasi aktif, manajemen stok `+`/`-`, pendaftaran buku baru, dan *Supabase Cloud Seed* |
+
+---
+
+## 🎨 Sistem Desain & Palet Warna
+
+| Elemen Visual | Kode Hex | Karakteristik Desain |
+| :--- | :--- | :--- |
+| **Background Utama** | `#12100E` | *Obsidian Wood* |
+| **Permukaan Kartu** | `#1E1916` | *Dark Leather* dengan border emas halus (`#D4AF37`) |
+| **Teks Utama / Muted** | `#F4E8C1` / `#A89F91` | *Aged Parchment* |
+| **Aksen Alkimia** | `#D4AF37` / `#10B981` / `#8B5CF6` / `#38BDF8` | *Alchemical Gold*, *Emerald Potion*, *Arcane Purple*, *Sky Cyan* |
+| **Tipografi** | `Cinzel` & `Plus Jakarta Sans` | Nuansa serif manuskrip abad pertengahan & font bacaan modern |
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React 19 + Vite 6
-- **Styling:** Tailwind CSS 3 (custom theme tokens & scroll/cauldron animations)
-- **Icons & Effects:** `lucide-react`, `canvas-confetti`, Web Audio API chimes
-- **Backend / Persistence (Opsional):** Supabase (`@supabase/supabase-js`) + PostgreSQL Schema (`supabase/schema.sql`) dengan fallback otomatis ke mock data lokal
+- **Framework:** React 19 + Vite 6
+- **Styling:** Tailwind CSS 3 (kustom animasi kuali alkimia, scrollbar perkamen, dan efek rotasi rune sihir)
+- **Komponen Ikon & Animasi:** `lucide-react`, `canvas-confetti`
+- **Database & Persistensi Cloud:** Supabase (`@supabase/supabase-js`)
+- **Smart Fallback:** *Local Grimoire Mode* (otomatis berjalan mulus tanpa error jika kredensial `.env` belum diisi)
 
 ---
 
-## 📁 Struktur Proyek
+## 🚀 Panduan Menjalankan Aplikasi
 
-```text
-alchemist-archive/
-├─ supabase/
-│  └─ schema.sql                 # Skema PostgreSQL (profiles, books, loans, reviews, quests) + seed data
-├─ src/
-│  ├─ components/
-│  │  ├─ Navbar.jsx              # Navigasi utama, indikator level & toggle suara
-│  │  ├─ Footer.jsx              # Footer akademi
-│  │  ├─ TomeCard.jsx            # Kartu buku interaktif (klik kartu untuk inspect)
-│  │  ├─ TomeModal.jsx           # Modal gulungan kuno (sinopsis, ISBN, rak, XP, Scholar's Notes)
-│  │  ├─ ReturnTomeModal.jsx     # Modal pengembalian buku, rating bintang & ulasan
-│  │  └─ NotificationToast.jsx   # Pop-up notifikasi berbentuk gulungan sihir
-│  ├─ data/
-│  │  └─ mockData.js             # Data awal 14 buku, 3 quest, 8 reagen, & profil cendekiawan
-│  ├─ lib/
-│  │  └─ supabaseClient.js       # Inisialisasi Supabase client & deteksi env vars
-│  ├─ services/
-│  │  └─ archiveService.js       # Service layer Supabase + fallback otomatis ke mock data
-│  ├─ utils/
-│  │  └─ soundEffects.js         # Sintesis efek suara Web Audio API
-│  ├─ views/
-│  │  ├─ GreatHallView.jsx
-│  │  ├─ VaultOfTomesView.jsx
-│  │  ├─ AlchemicalMixerView.jsx
-│  │  ├─ ScholarSanctumView.jsx
-│  │  └─ ArchivistChamberView.jsx
-│  ├─ App.jsx
-│  ├─ main.jsx
-│  └─ index.css
-├─ .env.example
-├─ package.json
-├─ tailwind.config.js
-└─ vite.config.js
-```
-
----
-
-## 🚀 Cara Menjalankan Secara Lokal
-
-### 1. Clone & Masuk ke Direktori Proyek
-```bash
-git clone https://github.com/dewaomib/Alchemist-Library.git
-cd Alchemist-Library
-```
-
-### 2. Install Dependensi
+### 1. Instalasi Dependensi
 ```bash
 npm install
 ```
 
-### 3. Jalankan Aplikasi (Mode Mock Fallback Langsung Jalan)
-Tanpa konfigurasi `.env`, aplikasi tetap dapat dijalankan sepenuhnya menggunakan data mock lokal:
+### 2. Menjalankan Server Pengembangan
 ```bash
 npm run dev
 ```
-Buka **`http://localhost:5173`** di browser Anda.
+Buka tautan lokal yang ditampilkan di terminal (biasanya `http://localhost:5173/`).
 
----
-
-## 🗄️ Menghubungkan ke Supabase (Mode Live Persistence)
-
-1. Buat project baru di [Supabase](https://supabase.com/).
-2. Buka **SQL Editor** di dashboard Supabase, lalu jalankan seluruh isi file [`supabase/schema.sql`](supabase/schema.sql) untuk membuat tabel `profiles`, `books`, `loans`, `reviews`, dan `quests` beserta data awal (*seed*).
-3. Salin file `.env.example` menjadi `.env` dan isi kredensial project Anda:
+### 3. Konfigurasi Supabase (Opsional)
+Jika ingin menghubungkan ke database Supabase:
+1. Salin file `.env.example` menjadi `.env`:
    ```bash
    cp .env.example .env
    ```
+2. Masukkan URL dan Kunci Anonim proyek Supabase Anda:
    ```env
-   VITE_SUPABASE_URL=https://your-project-id.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-public-key
+   VITE_SUPABASE_URL=https://proyek-anda.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
    ```
-4. Restart server Vite (`npm run dev`). Indikator di pojok kanan atas aplikasi akan berubah menjadi **`Supabase Archive Live`**.
+3. Jalankan seluruh perintah SQL di file `supabase/schema.sql` pada **SQL Editor** di Dashboard Supabase.
+4. Buka menu **Archivist's Chamber** di aplikasi dan klik tombol **"Seed Data ke Supabase"** untuk mengisi 12 buku awal, stok eksemplar, misi, dan data peminjaman secara otomatis.
 
 ---
 
-## 📜 Lisensi & Kredit
-Dibangun sebagai aplikasi perpustakaan sekolah interaktif bertema alkimia fantasi. Selamat menjelajahi **The Grand Alchemist's Archive**! ⚗️✨
+## 📜 Lisensi
+Dikembangkan untuk platform perpustakaan sekolah bertema fantasi alkimia. Bebas dimodifikasi dan dikembangkan lebih lanjut.

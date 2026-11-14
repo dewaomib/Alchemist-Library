@@ -12,6 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id TEXT PRIMARY KEY,
   student_id TEXT UNIQUE NOT NULL,
+  guild_id TEXT DEFAULT 'ARC-2026-089',
   name TEXT NOT NULL,
   academy_class TEXT NOT NULL DEFAULT 'Akademi Sains & Arkanum',
   guild_role TEXT NOT NULL DEFAULT 'Novice Initiate - Level 1',
@@ -20,11 +21,16 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   level INTEGER NOT NULL DEFAULT 1 CHECK (level >= 1),
   potions_brewed_count INTEGER NOT NULL DEFAULT 0,
   tomes_read_count INTEGER NOT NULL DEFAULT 0,
+  books_read INTEGER NOT NULL DEFAULT 0,
   reviews_penned_count INTEGER NOT NULL DEFAULT 0,
   badges JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure columns exist if table was already created
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS guild_id TEXT DEFAULT 'ARC-2026-089';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS books_read INTEGER NOT NULL DEFAULT 0;
 
 -- ----------------------------------------------------------------------------
 -- 2. BOOKS TABLE (Grimoires / School Library Catalog)
@@ -36,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.books (
   author TEXT NOT NULL,
   isbn TEXT NOT NULL,
   xp_reward INTEGER NOT NULL DEFAULT 75 CHECK (xp_reward > 0),
-  school TEXT NOT NULL CHECK (school IN ('fiction', 'alchemy', 'history', 'artificer', 'philosophy')),
+  school TEXT NOT NULL,
   school_name TEXT NOT NULL,
   rating NUMERIC(2, 1) NOT NULL DEFAULT 5.0 CHECK (rating >= 0 AND rating <= 5),
   reviews_count INTEGER NOT NULL DEFAULT 0,
@@ -44,6 +50,11 @@ CREATE TABLE IF NOT EXISTS public.books (
   arcane_level TEXT NOT NULL DEFAULT 'Adept',
   shelf TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'borrowed')),
+  available BOOLEAN NOT NULL DEFAULT TRUE,
+  total_stock INTEGER NOT NULL DEFAULT 5 CHECK (total_stock >= 0),
+  available_stock INTEGER NOT NULL DEFAULT 5 CHECK (available_stock >= 0),
+  has_digital BOOLEAN NOT NULL DEFAULT TRUE,
+  digital_content JSONB NOT NULL DEFAULT '[]'::jsonb,
   ingredients JSONB NOT NULL DEFAULT '[]'::jsonb,
   cover TEXT NOT NULL,
   synopsis TEXT NOT NULL,
@@ -52,20 +63,40 @@ CREATE TABLE IF NOT EXISTS public.books (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Ensure stock & digital columns exist if table was already created
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS total_stock INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS available_stock INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS has_digital BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS digital_content JSONB DEFAULT '[]'::jsonb;
+
 -- ----------------------------------------------------------------------------
 -- 3. LOANS TABLE (Borrowing Circulation & Mana Timer Tracking)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.loans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   book_id TEXT NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
-  profile_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  profile_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
   borrower_name TEXT NOT NULL,
+  requester_name TEXT,
+  requester_role TEXT NOT NULL DEFAULT 'siswa',
+  class_name TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  notes TEXT,
+  rejection_reason TEXT,
   borrowed_date DATE NOT NULL DEFAULT CURRENT_DATE,
   due_date DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '14 days')::DATE,
   returned_at TIMESTAMPTZ,
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'returned', 'recalled')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'returned', 'recalled', 'active')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS requester_name TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS requester_role TEXT NOT NULL DEFAULT 'siswa';
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS class_name TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_loans_book_status ON public.loans(book_id, status);
 CREATE INDEX IF NOT EXISTS idx_loans_profile_status ON public.loans(profile_id, status);
