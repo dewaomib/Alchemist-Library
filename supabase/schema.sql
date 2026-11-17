@@ -63,12 +63,24 @@ CREATE TABLE IF NOT EXISTS public.books (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Ensure stock & digital columns exist if table was already created
+-- Ensure stock, digital, excel columns exist if table was already created
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS total_stock INTEGER NOT NULL DEFAULT 5;
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS available_stock INTEGER NOT NULL DEFAULT 5;
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS has_digital BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS digital_content JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS book_code TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS publisher TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS publication_year INTEGER;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS cover_url TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS pdf_url TEXT;
+-- Barcode / label rak & nomor panggil (DDC)
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS kode_buku TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS ddc TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS call_number TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS barcode TEXT;
+CREATE INDEX IF NOT EXISTS idx_books_kode_buku ON public.books(kode_buku);
+CREATE INDEX IF NOT EXISTS idx_books_barcode ON public.books(barcode);
 
 -- ----------------------------------------------------------------------------
 -- 3. LOANS TABLE (Borrowing Circulation & Mana Timer Tracking)
@@ -97,9 +109,63 @@ ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS class_name TEXT;
 ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS notes TEXT;
 ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+-- Kontak untuk pengingat WhatsApp & aturan durasi pinjam
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS borrower_card TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS borrower_phone TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS guardian_name TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS guardian_phone TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS homeroom_name TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS homeroom_phone TEXT;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS max_days INTEGER NOT NULL DEFAULT 7;
+-- Paket Keranjang Kelas (peminjaman rombel kilat 1 hari)
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS is_package BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS lesson_hours TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_loans_book_status ON public.loans(book_id, status);
 CREATE INDEX IF NOT EXISTS idx_loans_profile_status ON public.loans(profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_loans_is_package ON public.loans(is_package);
+CREATE INDEX IF NOT EXISTS idx_loans_class_name ON public.loans(class_name);
+
+-- ----------------------------------------------------------------------------
+-- 3b. READING LOGS TABLE (GLS / Jurnal Refleksi Literasi Siswa)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.reading_logs (
+  id TEXT PRIMARY KEY DEFAULT ('log-' || gen_random_uuid()::TEXT),
+  profile_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  student_card TEXT,
+  student_name TEXT NOT NULL,
+  class_name TEXT NOT NULL,
+  book_id TEXT NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
+  book_title TEXT,
+  last_page_read INTEGER NOT NULL DEFAULT 0 CHECK (last_page_read >= 0),
+  favorite_quote TEXT,
+  summary TEXT NOT NULL,
+  word_count INTEGER NOT NULL DEFAULT 0 CHECK (word_count >= 0),
+  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'graded')),
+  score INTEGER CHECK (score IS NULL OR (score >= 0 AND score <= 100)),
+  feedback TEXT,
+  graded_at TIMESTAMPTZ,
+  graded_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS student_card TEXT;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS class_name TEXT;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS word_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'submitted';
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS score INTEGER;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS feedback TEXT;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS graded_at TIMESTAMPTZ;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS graded_by TEXT;
+ALTER TABLE public.reading_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_reading_logs_class ON public.reading_logs(class_name);
+CREATE INDEX IF NOT EXISTS idx_reading_logs_status ON public.reading_logs(status);
+CREATE INDEX IF NOT EXISTS idx_reading_logs_book ON public.reading_logs(book_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reading_logs_student_book
+  ON public.reading_logs(student_card, book_id)
+  WHERE student_card IS NOT NULL;
 
 -- ----------------------------------------------------------------------------
 -- 4. REVIEWS TABLE (Scholar's Notes & Star Ratings)
@@ -147,6 +213,7 @@ CREATE TABLE IF NOT EXISTS public.quests (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reading_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quests ENABLE ROW LEVEL SECURITY;
 
@@ -158,6 +225,9 @@ CREATE POLICY "Public demo read/write books" ON public.books FOR ALL USING (true
 
 DROP POLICY IF EXISTS "Public demo read/write loans" ON public.loans;
 CREATE POLICY "Public demo read/write loans" ON public.loans FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public demo read/write reading_logs" ON public.reading_logs;
+CREATE POLICY "Public demo read/write reading_logs" ON public.reading_logs FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public demo read/write reviews" ON public.reviews;
 CREATE POLICY "Public demo read/write reviews" ON public.reviews FOR ALL USING (true) WITH CHECK (true);

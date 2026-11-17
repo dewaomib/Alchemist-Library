@@ -10,8 +10,11 @@ import {
   FileText,
   RotateCcw,
   Sparkles,
-  Users
+  Users,
+  Package
 } from 'lucide-react';
+import ReadingLogReviewPanel from './ReadingLogReviewPanel';
+import ClassPackageDesk from './ClassPackageDesk';
 
 export default function MentorsSanctumView({
   currentUser,
@@ -20,6 +23,12 @@ export default function MentorsSanctumView({
   teacherLoanForm,
   setTeacherLoanForm,
   onSubmitTeacherLoan,
+  readingLogs = [],
+  onGradeReadingLog,
+  packageLoanForm,
+  setPackageLoanForm,
+  onSubmitPackageLoan,
+  onCompletePackageLoan,
   onOpenReader,
   onInspectBook
 }) {
@@ -82,6 +91,27 @@ export default function MentorsSanctumView({
           </div>
         </div>
       </section>
+
+      {/* SECTION BARU: PAKET KELAS 1 HARI */}
+      {packageLoanForm && setPackageLoanForm && onSubmitPackageLoan && (
+        <ClassPackageDesk
+          books={books}
+          form={packageLoanForm}
+          setForm={setPackageLoanForm}
+          onSubmit={onSubmitPackageLoan}
+          packageLoans={teacherLoans}
+          onCompletePackage={onCompletePackageLoan}
+          onInspectBook={onInspectBook}
+        />
+      )}
+
+      {/* SECTION BARU: REVIEW JURNAL LITERASI SISWA */}
+      <ReadingLogReviewPanel
+        readingLogs={readingLogs}
+        books={books}
+        onGradeLog={onGradeReadingLog}
+        currentUser={currentUser}
+      />
 
       {/* SECTION 1: FORMULIR PENGAJUAN PINJAMAN BUKU KELAS */}
       <section className="parchment-card rounded-2xl p-6 sm:p-8 space-y-6">
@@ -172,7 +202,7 @@ export default function MentorsSanctumView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Nama Kelas */}
             <div>
               <label className="block text-xs font-cinzel text-[#D4AF37] mb-1.5">
@@ -188,9 +218,33 @@ export default function MentorsSanctumView({
                     className: e.target.value
                   })
                 }
-                placeholder="Contoh: Kelas XI MIPA 1, Kelas X-B, atau Ekskul Olimpiade Sains"
+                placeholder="Contoh: Kelas XI MIPA 1"
                 className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-sky-400"
               />
+            </div>
+
+            {/* Durasi Peminjaman Guru */}
+            <div>
+              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1.5">
+                DURASI PEMINJAMAN (GURU):
+              </label>
+              <select
+                value={teacherLoanForm.durationDays || 14}
+                onChange={(e) =>
+                  setTeacherLoanForm({
+                    ...teacherLoanForm,
+                    durationDays: Number(e.target.value)
+                  })
+                }
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-sky-400"
+              >
+                <option value={14}>14 hari</option>
+                <option value={21}>21 hari</option>
+                <option value={30}>30 hari</option>
+              </select>
+              <span className="text-[10px] text-[#A89F91] mt-1 block">
+                Siswa dibatasi maksimal 7 hari; guru 14&ndash;30 hari.
+              </span>
             </div>
 
             {/* Catatan Keperluan */}
@@ -207,7 +261,7 @@ export default function MentorsSanctumView({
                     notes: e.target.value
                   })
                 }
-                placeholder="Contoh: Modul praktikum fluida dinamis & termodinamika selama 2 pertemuan"
+                placeholder="Contoh: Modul praktikum fluida dinamis"
                 className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-sky-400"
               />
             </div>
@@ -298,6 +352,9 @@ export default function MentorsSanctumView({
                           </h3>
                           <p className="text-[11px] text-[#A89F91]">
                             {loan.className} • {loan.quantity} Eksemplar
+                            {loan.isPackage
+                              ? ` • ${loan.lessonHours || 'Paket Kelas'}`
+                              : ''}
                           </p>
                         </div>
                       </div>
@@ -368,6 +425,18 @@ export default function MentorsSanctumView({
                           <span>Baca Digital</span>
                         </button>
                       )}
+                      {loan.isPackage &&
+                        loan.status === 'approved' &&
+                        onCompletePackageLoan && (
+                          <button
+                            type="button"
+                            onClick={() => onCompletePackageLoan(loan)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-emerald-500 text-[#12100E] hover:bg-emerald-400 transition-all flex items-center gap-1"
+                          >
+                            <Package className="w-3.5 h-3.5" />
+                            <span>Selesai / Kembalikan Paket</span>
+                          </button>
+                        )}
                       {book && onInspectBook && (
                         <button
                           type="button"

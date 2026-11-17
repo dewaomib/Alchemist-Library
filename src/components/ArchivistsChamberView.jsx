@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Database,
   ShieldCheck,
@@ -14,39 +14,93 @@ import {
   Layers,
   MapPin,
   CheckSquare,
-  Award
+  Award,
+  FileSpreadsheet,
+  Upload,
+  ExternalLink,
+  ScanLine,
+  Printer,
+  BarChart3,
+  MessageCircle
 } from 'lucide-react';
+import ExcelImportSection from './ExcelImportSection';
+import QuickLoanDesk from './QuickLoanDesk';
+import BarcodeLabelModal from './BarcodeLabelModal';
+import LibraryReportsView from './LibraryReportsView';
+import WhatsAppReminderModal from './WhatsAppReminderModal';
+import { formatDateID, getLoanTiming, sortLoansByUrgency } from '../utils/loanUtils';
 
 export default function ArchivistsChamberView({
   currentUser,
   books,
   loans,
+  members = [],
   allPendingLoans,
   allApprovedLoans,
   onApproveLoan,
   onRejectLoan,
   onVerifyReturnLoan,
   onAdjustStock,
+  onSubmitQuickLoan,
+  isSubmittingQuickLoan = false,
   newBookForm,
   setNewBookForm,
   onAddNewBook,
+  onImportBulkBooks,
+  isImporting = false,
   isSupabaseConfigured,
   isSeedingSupabase,
   onSeedSupabase,
   onOpenReader,
+  onOpenPdfViewer,
   onInspectBook,
   ingredientsList,
   schoolsList
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('queue'); // 'queue' | 'circulation' | 'inventory' | 'inscribe'
+  const [activeSubTab, setActiveSubTab] = useState('queue'); // 'quick' | 'queue' | 'circulation' | 'inventory' | 'import_excel' | 'reports' | 'inscribe'
   const [stockSearchQuery, setStockSearchQuery] = useState('');
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
+  const [labelInitialBookId, setLabelInitialBookId] = useState(null);
+  const [reminderLoan, setReminderLoan] = useState(null);
+
+  const overdueLoans = useMemo(
+    () => allApprovedLoans.filter((loan) => getLoanTiming(loan).key === 'overdue'),
+    [allApprovedLoans]
+  );
+  const dueSoonLoans = useMemo(
+    () => allApprovedLoans.filter((loan) => getLoanTiming(loan).key === 'due_soon'),
+    [allApprovedLoans]
+  );
+  const sortedApprovedLoans = useMemo(
+    () => sortLoansByUrgency(allApprovedLoans),
+    [allApprovedLoans]
+  );
+
+  const reminderBook = reminderLoan
+    ? books.find((book) => book.id === reminderLoan.bookId) || null
+    : null;
+  const reminderMember = reminderLoan
+    ? members.find(
+        (member) =>
+          (reminderLoan.borrowerCard && member.cardCode === reminderLoan.borrowerCard) ||
+          member.name === reminderLoan.borrowerName ||
+          member.name === reminderLoan.requesterName
+      ) || null
+    : null;
+
+  const openLabelModal = (bookId = null) => {
+    setLabelInitialBookId(bookId);
+    setIsLabelModalOpen(true);
+  };
 
   const filteredInventoryBooks = books.filter((b) => {
     const q = stockSearchQuery.toLowerCase();
     return (
-      b.title.toLowerCase().includes(q) ||
-      b.author.toLowerCase().includes(q) ||
-      b.category.toLowerCase().includes(q)
+      (b.title || '').toLowerCase().includes(q) ||
+      (b.author || '').toLowerCase().includes(q) ||
+      (b.category || '').toLowerCase().includes(q) ||
+      (b.kodeBuku || b.id || '').toLowerCase().includes(q) ||
+      (b.publisher || '').toLowerCase().includes(q)
     );
   });
 
@@ -79,12 +133,38 @@ export default function ArchivistsChamberView({
                 {currentUser.name}
               </h1>
               <p className="text-xs text-[#A89F91]">
-                Pusat Kontrol Sirkulasi, Persetujuan Peminjaman Siswa/Guru, &amp; Inventaris Grimoire
+                Pusat Kontrol Sirkulasi, Persetujuan Peminjaman, Import Excel Massal, &amp; Inventaris Grimoire
               </p>
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('quick')}
+                  className="px-3 py-2 rounded-xl text-[11px] font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/45 hover:bg-emerald-500/30 transition-colors flex items-center gap-1.5"
+                >
+                  <ScanLine className="w-3.5 h-3.5" />
+                  Transaksi Kilat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openLabelModal(null)}
+                  className="px-3 py-2 rounded-xl text-[11px] font-cinzel font-bold bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/45 hover:bg-[#D4AF37]/25 transition-colors flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Cetak Label Rak
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('reports')}
+                  className="px-3 py-2 rounded-xl text-[11px] font-cinzel font-bold bg-purple-500/15 text-purple-300 border border-purple-500/45 hover:bg-purple-500/25 transition-colors flex items-center gap-1.5"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  Laporan Bulanan
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+          <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center">
             <div className="p-3 rounded-xl bg-black/40 border border-white/10">
               <span className="text-[11px] text-[#A89F91] block">Total Koleksi</span>
               <span className="font-cinzel text-xl font-bold text-[#D4AF37] block mt-0.5">
@@ -109,6 +189,14 @@ export default function ArchivistsChamberView({
               <span className="text-[9px] text-emerald-400/80">Sirkulasi</span>
             </div>
 
+            <div className="p-3 rounded-xl bg-black/40 border border-rose-500/25">
+              <span className="text-[11px] text-[#A89F91] block">Terlambat</span>
+              <span className="font-cinzel text-xl font-bold text-rose-400 block mt-0.5">
+                {overdueLoans.length}
+              </span>
+              <span className="text-[9px] text-rose-400/80">Perlu Pengingat</span>
+            </div>
+
             <div className="p-3 rounded-xl bg-black/40 border border-white/10">
               <span className="text-[11px] text-[#A89F91] block">Database</span>
               <span
@@ -127,6 +215,18 @@ export default function ArchivistsChamberView({
 
       {/* ADMIN SUB-TABS NAVIGATION */}
       <div className="flex items-center gap-2 overflow-x-auto border-b border-[#D4AF37]/20 pb-2">
+        <button
+          onClick={() => setActiveSubTab('quick')}
+          className={`px-4 py-2.5 rounded-xl font-cinzel text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeSubTab === 'quick'
+              ? 'bg-gradient-to-r from-emerald-500 to-[#D4AF37] text-[#12100E] shadow-lg'
+              : 'bg-[#1E1916] text-emerald-300 hover:text-emerald-200 border border-emerald-500/30'
+          }`}
+        >
+          <ScanLine className="w-4 h-4" />
+          <span>Transaksi Kilat (Scan)</span>
+        </button>
+
         <button
           onClick={() => setActiveSubTab('queue')}
           className={`px-4 py-2.5 rounded-xl font-cinzel text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
@@ -167,6 +267,30 @@ export default function ArchivistsChamberView({
         </button>
 
         <button
+          onClick={() => setActiveSubTab('import_excel')}
+          className={`px-4 py-2.5 rounded-xl font-cinzel text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeSubTab === 'import_excel'
+              ? 'bg-gradient-to-r from-emerald-500 to-amber-500 text-[#12100E] shadow-lg'
+              : 'bg-[#1E1916] text-emerald-400 hover:text-emerald-300 border border-emerald-500/30'
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span>Import Excel (Bulk)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('reports')}
+          className={`px-4 py-2.5 rounded-xl font-cinzel text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeSubTab === 'reports'
+              ? 'bg-gradient-to-r from-purple-500 to-[#D4AF37] text-[#12100E] shadow-lg'
+              : 'bg-[#1E1916] text-purple-300 hover:text-purple-200 border border-purple-500/30'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Laporan &amp; Ekspor</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('inscribe')}
           className={`px-4 py-2.5 rounded-xl font-cinzel text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
             activeSubTab === 'inscribe'
@@ -175,9 +299,22 @@ export default function ArchivistsChamberView({
           }`}
         >
           <Plus className="w-4 h-4" />
-          <span>Tambah Grimoire Baru</span>
+          <span>Tambah Manual</span>
         </button>
       </div>
+
+      {/* =========================================================
+          SUB-TAB 0: QUICK LOAN DESK (BARCODE / QR SCANNING)
+      ========================================================= */}
+      {activeSubTab === 'quick' && (
+        <QuickLoanDesk
+          books={books}
+          members={members}
+          loans={loans}
+          onSubmitQuickLoan={onSubmitQuickLoan}
+          isSubmitting={isSubmittingQuickLoan}
+        />
+      )}
 
       {/* =========================================================
           SUB-TAB 1: ANTREAN PERSETUJUAN PEMINJAMAN (APPROVAL QUEUE)
@@ -297,15 +434,15 @@ export default function ArchivistsChamberView({
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-3 w-full lg:w-auto justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-white/10">
-                      {book && (
+                      {book && book.pdfUrl && onOpenPdfViewer && (
                         <button
                           type="button"
-                          onClick={() => onOpenReader(book)}
+                          onClick={() => onOpenPdfViewer(book)}
                           className="px-3 py-2 rounded-xl text-xs font-cinzel text-purple-300 hover:bg-purple-500/20 border border-purple-500/30 transition-all flex items-center gap-1.5"
-                          title="Preview E-Grimoire Digital"
+                          title="Lihat Berkas PDF"
                         >
                           <BookOpen className="w-3.5 h-3.5" />
-                          <span>Baca Digital</span>
+                          <span>Lihat PDF</span>
                         </button>
                       )}
 
@@ -360,6 +497,20 @@ export default function ArchivistsChamberView({
             </span>
           </div>
 
+          {overdueLoans.length > 0 && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/35 text-xs text-rose-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>{overdueLoans.length} peminjaman melewati jatuh tempo</strong>
+                {dueSoonLoans.length > 0
+                  ? ` dan ${dueSoonLoans.length} mendekati jatuh tempo (H-1).`
+                  : '.'}{' '}
+                Gunakan tombol <strong>Ingatkan</strong> untuk mengirim pesan WhatsApp ke siswa,
+                orang tua, atau wali kelas.
+              </span>
+            </div>
+          )}
+
           {allApprovedLoans.length === 0 ? (
             <p className="text-xs text-[#A89F91] py-8 text-center">
               Tidak ada buku yang sedang berstatus dipinjam saat ini. Seluruh koleksi berada di dalam rak.
@@ -372,21 +523,27 @@ export default function ArchivistsChamberView({
                     <th className="py-3 px-3">Judul Grimoire</th>
                     <th className="py-3 px-3">Peminjam</th>
                     <th className="py-3 px-3">Role &amp; Kelas</th>
-                    <th className="py-3 px-3">Jumlah</th>
+                    <th className="py-3 px-3 text-center">Jumlah</th>
                     <th className="py-3 px-3">Tgl Pinjam</th>
-                    <th className="py-3 px-3">Batas Waktu</th>
+                    <th className="py-3 px-3">Status Jatuh Tempo</th>
                     <th className="py-3 px-3 text-right">Aksi Kurator</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {allApprovedLoans.map((loan) => {
+                  {sortedApprovedLoans.map((loan) => {
                     const book = books.find((b) => b.id === loan.bookId);
+                    const timing = getLoanTiming(loan);
                     return (
                       <tr key={loan.id} className="hover:bg-white/5 transition-colors">
                         <td className="py-3.5 px-3 font-semibold text-[#F4E8C1]">
                           <div className="flex items-center gap-2">
                             <span className="text-[#D4AF37]">{book?.coverRune || '✦'}</span>
-                            <span>{loan.bookTitle || book?.title}</span>
+                            <div>
+                              <span>{loan.bookTitle || book?.title}</span>
+                              <span className="block text-[10px] font-mono text-[#D4AF37]/80">
+                                {book?.kodeBuku || loan.bookCode || '-'}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         <td className="py-3.5 px-3 text-[#F4E8C1]">
@@ -402,27 +559,42 @@ export default function ArchivistsChamberView({
                           >
                             {loan.requesterRole === 'guru' ? 'Guru' : 'Siswa'}
                           </span>
-                          <span className="text-[#A89F91] ml-1.5">{loan.className}</span>
+                          <span className="block text-[#A89F91] text-[10px] mt-1">{loan.className}</span>
                         </td>
-                        <td className="py-3.5 px-3 font-bold text-amber-400">
-                          {loan.quantity || 1} Eksemplar
+                        <td className="py-3.5 px-3 text-center font-bold text-amber-400">
+                          {loan.quantity || 1}
                         </td>
                         <td className="py-3.5 px-3 text-[#A89F91]">
                           {loan.borrowedDate}
                         </td>
                         <td className="py-3.5 px-3">
-                          <span className="font-semibold text-amber-400">
-                            {loan.daysLeft ?? 7} Hari Tersisa
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${timing.badgeClass}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${timing.dotClass}`} />
+                            {timing.shortLabel}
+                          </span>
+                          <span className="block text-[10px] text-[#A89F91] mt-1">
+                            Jatuh tempo {formatDateID(loan.dueDate)}
                           </span>
                         </td>
                         <td className="py-3.5 px-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => onVerifyReturnLoan(loan)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
-                          >
-                            Verifikasi Kembali (+Stok)
-                          </button>
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setReminderLoan(loan)}
+                              className="px-2.5 py-1.5 rounded-lg text-[11px] font-cinzel font-bold bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 hover:bg-[#25D366]/25 transition-all flex items-center gap-1"
+                              title="Kirim pengingat WhatsApp"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              Ingatkan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onVerifyReturnLoan(loan)}
+                              className="px-2.5 py-1.5 rounded-lg text-[11px] font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                            >
+                              Verifikasi Kembali
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -450,25 +622,38 @@ export default function ArchivistsChamberView({
               </p>
             </div>
 
-            <input
-              type="text"
-              value={stockSearchQuery}
-              onChange={(e) => setStockSearchQuery(e.target.value)}
-              placeholder="Cari buku untuk sesuaikan stok..."
-              className="px-3.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] sm:w-64"
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('import_excel')}
+                className="px-3.5 py-2 rounded-xl text-xs font-cinzel font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Import Excel Massal</span>
+              </button>
+
+              <input
+                type="text"
+                value={stockSearchQuery}
+                onChange={(e) => setStockSearchQuery(e.target.value)}
+                placeholder="Cari judul, penulis, kode..."
+                className="px-3.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] sm:w-60"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[#D4AF37]/20 text-[#D4AF37] font-cinzel">
+                  <th className="py-3 px-3">Kode</th>
                   <th className="py-3 px-3">Judul Grimoire</th>
-                  <th className="py-3 px-3">Kategori &amp; Rak</th>
-                  <th className="py-3 px-3 text-center">Total Stok Fisik</th>
-                  <th className="py-3 px-3 text-center">Stok Tersedia di Rak</th>
-                  <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-3 text-right">E-Grimoire</th>
+                  <th className="py-3 px-3">Penulis &amp; Penerbit</th>
+                  <th className="py-3 px-3">Kategori</th>
+                  <th className="py-3 px-3 text-center">Total Stok</th>
+                  <th className="py-3 px-3 text-center">Stok di Rak</th>
+                  <th className="py-3 px-3 text-center">Format</th>
+                  <th className="py-3 px-3 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -476,14 +661,23 @@ export default function ArchivistsChamberView({
                   const isAvailable = book.availableStock > 0;
                   return (
                     <tr key={book.id} className="hover:bg-white/5 transition-colors">
+                      <td className="py-3.5 px-3 font-mono font-semibold text-[#D4AF37]">
+                        {book.kodeBuku || book.id}
+                      </td>
+
                       <td className="py-3.5 px-3 font-semibold text-[#F4E8C1]">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg text-[#D4AF37]">{book.coverRune}</span>
+                          <span className="text-lg text-[#D4AF37]">{book.coverRune || '✦'}</span>
                           <div>
                             <p className="font-cinzel font-bold">{book.title}</p>
                             <p className="text-[10px] text-[#A89F91] italic">{book.subtitle}</p>
                           </div>
                         </div>
+                      </td>
+
+                      <td className="py-3.5 px-3 text-[#A89F91]">
+                        <span className="text-[#F4E8C1] block font-medium">{book.author}</span>
+                        <span className="text-[10px]">{book.publisher || 'Pustaka Sekolah'} {book.publicationYear ? `(${book.publicationYear})` : ''}</span>
                       </td>
 
                       <td className="py-3.5 px-3">
@@ -545,28 +739,42 @@ export default function ArchivistsChamberView({
                         </div>
                       </td>
 
-                      {/* Status */}
+                      {/* Format Badge */}
                       <td className="py-3.5 px-3 text-center">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            isAvailable
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                          }`}
-                        >
-                          {isAvailable ? 'Tersedia di Rak' : 'Stok Fisik Habis (Digital Only)'}
-                        </span>
+                        {book.pdfUrl ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                            Ada PDF
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/40">
+                            Hanya Fisik
+                          </span>
+                        )}
                       </td>
 
-                      {/* Digital Reader Preview */}
+                      {/* Action */}
                       <td className="py-3.5 px-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => onOpenReader(book)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all"
-                        >
-                          Baca Digital
-                        </button>
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          {book.pdfUrl && onOpenPdfViewer && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPdfViewer(book)}
+                              className="px-2.5 py-1.5 rounded-lg text-[11px] font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
+                            >
+                              <BookOpen className="w-3 h-3" />
+                              PDF
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openLabelModal(book.id)}
+                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-cinzel font-semibold bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/40 hover:bg-[#D4AF37]/25 transition-all flex items-center gap-1"
+                            title="Cetak label rak & barcode buku ini"
+                          >
+                            <Printer className="w-3 h-3" />
+                            Label
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -578,28 +786,75 @@ export default function ArchivistsChamberView({
       )}
 
       {/* =========================================================
-          SUB-TAB 4: INSCRIBE NEW GRIMOIRE FORM & SEEDING
+          SUB-TAB 4: FITUR IMPORT EXCEL (BULK IMPORT)
+      ========================================================= */}
+      {activeSubTab === 'import_excel' && (
+        <section className="parchment-card rounded-2xl p-6 sm:p-8 space-y-6">
+          <ExcelImportSection
+            existingBooks={books}
+            onImportBooks={onImportBulkBooks}
+            isProcessing={isImporting}
+          />
+        </section>
+      )}
+
+      {/* =========================================================
+          SUB-TAB 4B: MONTHLY & ACCREDITATION REPORTS
+      ========================================================= */}
+      {activeSubTab === 'reports' && (
+        <LibraryReportsView
+          books={books}
+          loans={loans}
+          onOpenReminder={(loan) => setReminderLoan(loan)}
+        />
+      )}
+
+      {/* =========================================================
+          SUB-TAB 5: INSCRIBE NEW GRIMOIRE FORM & SEEDING
       ========================================================= */}
       {activeSubTab === 'inscribe' && (
         <div className="space-y-8">
           <section className="parchment-card rounded-2xl p-6 sm:p-8 space-y-6">
-            <div className="border-b border-[#D4AF37]/20 pb-4 flex items-center justify-between">
+            <div className="border-b border-[#D4AF37]/20 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="font-cinzel text-xl font-bold text-[#F4E8C1]">
-                  Inscribe New Grimoire (Daftarkan Buku Baru)
+                  Inscribe New Grimoire (Daftarkan Buku Baru Manual)
                 </h2>
                 <p className="text-xs text-[#A89F91] mt-0.5">
-                  Tambahkan buku baru lengkap dengan total eksemplar, stok awal rak, dan teks bacaan digital.
+                  Tambahkan buku satu per satu secara lengkap, atau gunakan fitur import Excel jika memiliki banyak data.
                 </p>
               </div>
-              <Plus className="w-5 h-5 text-[#D4AF37]" />
+
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('import_excel')}
+                className="px-4 py-2 rounded-xl text-xs font-cinzel font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all flex items-center gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Import dari Excel (.xlsx)</span>
+              </button>
             </div>
 
             <form onSubmit={onAddNewBook} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                    JUDUL GRIMOIRE:
+                    KODE BUKU (UNIK):
+                  </label>
+                  <input
+                    type="text"
+                    value={newBookForm.kodeBuku || ''}
+                    onChange={(e) =>
+                      setNewBookForm({ ...newBookForm, kodeBuku: e.target.value })
+                    }
+                    placeholder="Contoh: BK-LIT-001"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                    JUDUL GRIMOIRE / BUKU:
                   </label>
                   <input
                     type="text"
@@ -609,21 +864,6 @@ export default function ArchivistsChamberView({
                       setNewBookForm({ ...newBookForm, title: e.target.value })
                     }
                     placeholder="Contoh: Kimia Larutan &amp; Stoikiometri"
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                    SUB-JUDUL FANTASI:
-                  </label>
-                  <input
-                    type="text"
-                    value={newBookForm.subtitle}
-                    onChange={(e) =>
-                      setNewBookForm({ ...newBookForm, subtitle: e.target.value })
-                    }
-                    placeholder="Contoh: Transmutation of Chemical Solutions"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -640,6 +880,36 @@ export default function ArchivistsChamberView({
                       setNewBookForm({ ...newBookForm, author: e.target.value })
                     }
                     placeholder="Contoh: Dr. Budi Santoso"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                    PENERBIT BUKU:
+                  </label>
+                  <input
+                    type="text"
+                    value={newBookForm.publisher || ''}
+                    onChange={(e) =>
+                      setNewBookForm({ ...newBookForm, publisher: e.target.value })
+                    }
+                    placeholder="Contoh: Erlangga, Bentang Pustaka"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                    TAHUN TERBIT:
+                  </label>
+                  <input
+                    type="number"
+                    value={newBookForm.publicationYear || 2024}
+                    onChange={(e) =>
+                      setNewBookForm({ ...newBookForm, publicationYear: Number(e.target.value) })
+                    }
+                    placeholder="2024"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -674,21 +944,6 @@ export default function ArchivistsChamberView({
                       setNewBookForm({ ...newBookForm, shelf: e.target.value })
                     }
                     placeholder="Contoh: Menara Timur • Rak Alkimia C2"
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                    ISBN:
-                  </label>
-                  <input
-                    type="text"
-                    value={newBookForm.isbn}
-                    onChange={(e) =>
-                      setNewBookForm({ ...newBookForm, isbn: e.target.value })
-                    }
-                    placeholder="978-602-000-000-0"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -736,38 +991,33 @@ export default function ArchivistsChamberView({
 
                 <div>
                   <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                    HADIAH SCHOLAR XP:
+                    LINK COVER BUKU (OPSIONAL):
                   </label>
                   <input
-                    type="number"
-                    value={newBookForm.xpReward}
+                    type="url"
+                    value={newBookForm.coverUrl || ''}
                     onChange={(e) =>
-                      setNewBookForm({
-                        ...newBookForm,
-                        xpReward: e.target.value
-                      })
+                      setNewBookForm({ ...newBookForm, coverUrl: e.target.value })
                     }
+                    placeholder="URL gambar (Google Drive / Web)"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                  TEKS BACAAN DIGITAL BAB 1 (E-GRIMOIRE):
-                </label>
-                <textarea
-                  rows={3}
-                  value={newBookForm.digitalContentText || ''}
-                  onChange={(e) =>
-                    setNewBookForm({
-                      ...newBookForm,
-                      digitalContentText: e.target.value
-                    })
-                  }
-                  placeholder="Tuliskan isi bab bacaan digital atau biarkan kosong untuk menghasilkan bab naskah alkimia otomatis..."
-                  className="w-full p-3 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                />
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                    LINK PDF E-BOOK (OPSIONAL — KOSONGKAN JIKA HANYA ADA BUKU FISIK):
+                  </label>
+                  <input
+                    type="url"
+                    value={newBookForm.pdfUrl || ''}
+                    onChange={(e) =>
+                      setNewBookForm({ ...newBookForm, pdfUrl: e.target.value })
+                    }
+                    placeholder="URL file PDF Google Drive atau web langsung (misal: https://drive.google.com/file/d/...)"
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -829,6 +1079,26 @@ export default function ArchivistsChamberView({
           </section>
         </div>
       )}
+
+      {/* MODAL: PRINTABLE BARCODE & SHELF LABELS */}
+      <BarcodeLabelModal
+        isOpen={isLabelModalOpen}
+        onClose={() => {
+          setIsLabelModalOpen(false);
+          setLabelInitialBookId(null);
+        }}
+        books={books}
+        initialBookId={labelInitialBookId}
+      />
+
+      {/* MODAL: WHATSAPP DUE-DATE REMINDER */}
+      <WhatsAppReminderModal
+        isOpen={Boolean(reminderLoan)}
+        onClose={() => setReminderLoan(null)}
+        loan={reminderLoan}
+        book={reminderBook}
+        member={reminderMember}
+      />
     </div>
   );
 }

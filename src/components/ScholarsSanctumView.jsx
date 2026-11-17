@@ -10,8 +10,17 @@ import {
   Star,
   Check,
   Flame,
-  AlertCircle
+  AlertCircle,
+  Feather,
+  FileText,
+  MessageSquareQuote,
+  Quote
 } from 'lucide-react';
+import { formatDateID } from '../utils/loanUtils';
+import {
+  getReadingLogStatusMeta,
+  getReadingLogWordCount
+} from '../utils/readingUtils';
 
 export default function ScholarsSanctumView({
   currentUser,
@@ -24,10 +33,13 @@ export default function ScholarsSanctumView({
   studentPendingLoans,
   quests,
   badges,
+  readingLogs = [],
   onClaimQuest,
   onOpenReturnModal,
   onOpenReader,
-  onInspectBook
+  onInspectBook,
+  onOpenReadingLog,
+  onBrowseBooks
 }) {
   return (
     <div className="space-y-10">
@@ -316,6 +328,164 @@ export default function ScholarsSanctumView({
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* SECTION BARU: JURNAL REFLEKSI LITERASI (GLS) */}
+      <section className="space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-cinzel tracking-widest uppercase">
+              <Feather className="w-3.5 h-3.5" />
+              <span>GLS • READING LOGBOOK</span>
+            </div>
+            <h2 className="font-cinzel text-xl sm:text-2xl font-bold text-[#F4E8C1] mt-0.5">
+              Jurnal Refleksi Literasi ({readingLogs.length})
+            </h2>
+            <p className="text-xs text-[#A89F91] mt-1 max-w-2xl">
+              Tulis halaman terakhir, kutipan favorit, dan ringkasan hikmah minimal
+              100 kata. Guru akan membaca dan memberikan skor serta umpan balik.
+            </p>
+          </div>
+          {onBrowseBooks && (
+            <button
+              type="button"
+              onClick={onBrowseBooks}
+              className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 transition-colors flex items-center gap-1.5 w-fit"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Cari Buku &amp; Tulis Jurnal
+            </button>
+          )}
+        </div>
+
+        {readingLogs.length === 0 ? (
+          <div className="parchment-card rounded-2xl p-10 text-center space-y-2">
+            <FileText className="w-8 h-8 text-[#A89F91] mx-auto" />
+            <p className="text-sm font-cinzel text-[#F4E8C1]">
+              Belum Ada Jurnal Literasi
+            </p>
+            <p className="text-xs text-[#A89F91]">
+              Buka detail buku favoritmu, lalu pilih &ldquo;Tulis Jurnal
+              Literasi&rdquo; untuk mulai mencatat refleksi.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {readingLogs
+              .slice()
+              .sort(
+                (a, b) =>
+                  new Date(b.updatedAt || b.createdAt || 0).getTime() -
+                  new Date(a.updatedAt || a.createdAt || 0).getTime()
+              )
+              .map((log) => {
+                const meta = getReadingLogStatusMeta(log.status);
+                const book = books.find((item) => item.id === log.bookId);
+                return (
+                  <div
+                    key={log.id}
+                    className={`parchment-card rounded-2xl p-5 space-y-3 border ${
+                      log.status === 'graded'
+                        ? 'border-emerald-500/30'
+                        : 'border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <span className="text-2xl text-[#D4AF37] shrink-0">
+                          {book?.coverRune || '✦'}
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1] truncate">
+                            {log.bookTitle || book?.title}
+                          </h3>
+                          <p className="text-[11px] text-[#A89F91]">
+                            Halaman {log.lastPageRead}
+                            {book ? ` / ${book.pages}` : ''} •{' '}
+                            {getReadingLogWordCount(log)} kata •{' '}
+                            {formatDateID(log.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${meta.badgeClass}`}
+                      >
+                        {meta.label}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-black/25 border border-white/5">
+                      <span className="text-[9px] uppercase tracking-wider text-[#D4AF37] flex items-center gap-1">
+                        <Quote className="w-3 h-3" />
+                        Kutipan Favorit
+                      </span>
+                      <p className="text-[11px] italic text-[#F4E8C1]/90 mt-1 line-clamp-2">
+                        &ldquo;{log.favoriteQuote}&rdquo;
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] uppercase tracking-wider text-[#A89F91] flex items-center gap-1">
+                        <MessageSquareQuote className="w-3 h-3" />
+                        Ringkasan Hikmah
+                      </span>
+                      <p className="text-xs text-[#F4E8C1]/80 leading-relaxed mt-1 line-clamp-3">
+                        {log.summary}
+                      </p>
+                    </div>
+
+                    {log.status === 'graded' ? (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-emerald-300 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Sudah Dinilai
+                          </span>
+                          <span className="font-cinzel text-sm font-bold text-emerald-300">
+                            {log.score}/100
+                          </span>
+                        </div>
+                        {log.feedback && (
+                          <p className="text-[11px] text-emerald-100/80 leading-relaxed">
+                            {log.feedback}
+                          </p>
+                        )}
+                        <p className="text-[9px] text-[#A89F91]">
+                          oleh {log.gradedBy || 'Guru'} •{' '}
+                          {formatDateID(log.gradedAt || log.updatedAt)}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        Menunggu penilaian dan umpan balik guru.
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => book && onOpenReadingLog(book)}
+                        disabled={!book}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-cinzel font-bold bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/35 hover:bg-[#D4AF37]/25 transition-colors disabled:opacity-40"
+                      >
+                        {log.status === 'graded' ? 'Edit & Kirim Ulang' : 'Edit Jurnal'}
+                      </button>
+                      {book && onInspectBook && (
+                        <button
+                          type="button"
+                          onClick={() => onInspectBook(book.id)}
+                          className="text-[11px] text-[#A89F91] hover:text-[#F4E8C1]"
+                        >
+                          Lihat Detail Buku
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         )}
       </section>
