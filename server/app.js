@@ -1424,6 +1424,7 @@ export function createApiMiddlewareApp() {
   const apiRouter = buildApiRouter();
   app.use('/api', apiRouter);
   app.use('/Alchemist-Library/api', apiRouter);
+  app.use('/', apiRouter);
 
   app.use((err, _req, res, _next) => {
     console.error('[API Error]', err);

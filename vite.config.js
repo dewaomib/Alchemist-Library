@@ -25,8 +25,11 @@ function prismaApiPlugin() {
   };
 }
 
+const isVercel = Boolean(process.env.VERCEL);
+const basePath = isVercel ? '/' : (process.env.VITE_BASE_PATH || '/Alchemist-Library/');
+
 export default defineConfig({
-  base: '/Alchemist-Library/',
+  base: basePath,
   plugins: [react(), prismaApiPlugin()],
   server: {
     port: 5173,

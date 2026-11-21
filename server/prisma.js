@@ -8,7 +8,7 @@ export const prisma =
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
   });
 
-if (process.env.NODE_ENV !== 'production') {
+if (!globalForPrisma.__alchemistPrisma) {
   globalForPrisma.__alchemistPrisma = prisma;
 }
 

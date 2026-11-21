@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/Alchemist-Library/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/Alchemist-Library/(.*)",
+      "destination": "/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
