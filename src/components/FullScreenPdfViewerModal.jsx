@@ -29,6 +29,7 @@ import {
   saveReaderTheme
 } from '../utils/readingProgress';
 import { getReaderThemeTokens } from '../utils/readerThemes';
+import { useTheme } from '../context/ThemeContext';
 
 function formatLastOpened(value) {
   const date = new Date(value);
@@ -49,16 +50,19 @@ export default function FullScreenPdfViewerModal({
   const [loadError, setLoadError] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
 
+  const { isModern } = useTheme();
   const userId = getUserKey(currentUser);
   const bookId = getBookKey(book);
-  const [readerTheme, setReaderTheme] = useState(() => loadReaderTheme(userId));
+  const [readerTheme, setReaderTheme] = useState(() =>
+    isModern ? 'modern' : loadReaderTheme(userId)
+  );
   const [lastOpened, setLastOpened] = useState(null);
   const tokens = getReaderThemeTokens(readerTheme);
 
-  // Keep the theme in sync with the active demo identity.
+  // Keep the reader theme in sync with the active identity & global theme.
   useEffect(() => {
-    setReaderTheme(loadReaderTheme(userId));
-  }, [userId]);
+    setReaderTheme(isModern ? 'modern' : loadReaderTheme(userId));
+  }, [userId, isModern]);
 
   useEffect(() => {
     // Reset state whenever a new book is opened
@@ -157,9 +161,12 @@ export default function FullScreenPdfViewerModal({
   };
 
   const handleToggleTheme = () => {
-    const nextTheme = readerTheme === 'obsidian' ? 'parchment' : 'obsidian';
+    const nextTheme =
+      readerTheme === 'obsidian' ? (isModern ? 'modern' : 'parchment') : 'obsidian';
     setReaderTheme(nextTheme);
-    saveReaderTheme(userId, nextTheme);
+    if (nextTheme === 'obsidian' || nextTheme === 'parchment') {
+      saveReaderTheme(userId, nextTheme);
+    }
   };
 
   return (

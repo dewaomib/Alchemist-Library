@@ -39,6 +39,7 @@ import {
   saveReaderTheme
 } from '../utils/readingProgress';
 import { getReaderThemeTokens } from '../utils/readerThemes';
+import { useTheme } from '../context/ThemeContext';
 import { useSpeechNarrator } from '../hooks/useSpeechNarrator';
 
 export default function EGrimoireReaderModal({
@@ -49,11 +50,14 @@ export default function EGrimoireReaderModal({
   currentUser,
   showToast
 }) {
+  const { isModern } = useTheme();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [fontSizeLevel, setFontSizeLevel] = useState(1); // 0: sm, 1: base, 2: lg, 3: xl
   const userId = getUserKey(currentUser);
   const bookId = getBookKey(book);
-  const [readerTheme, setReaderTheme] = useState(() => loadReaderTheme(userId)); // 'obsidian' | 'parchment'
+  const [readerTheme, setReaderTheme] = useState(() =>
+    isModern ? 'modern' : loadReaderTheme(userId)
+  ); // 'obsidian' | 'parchment' | 'modern'
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasClaimedXp, setHasClaimedXp] = useState(false);
 
@@ -81,7 +85,13 @@ export default function EGrimoireReaderModal({
   const progressPercent = totalPages > 0
     ? Math.round(((currentPageIndex + 1) / totalPages) * 100)
     : 0;
-  const tokens = getReaderThemeTokens(readerTheme);
+  const effectiveReaderTheme =
+    isModern && readerTheme !== 'obsidian' ? 'modern' : readerTheme;
+  const tokens = getReaderThemeTokens(effectiveReaderTheme);
+
+  useEffect(() => {
+    setReaderTheme(isModern ? 'modern' : loadReaderTheme(userId));
+  }, [userId, isModern]);
 
   // Font size classes
   const fontSizes = [
@@ -148,9 +158,12 @@ export default function EGrimoireReaderModal({
   }, [persistProgress]);
 
   const handleToggleTheme = () => {
-    const nextTheme = readerTheme === 'obsidian' ? 'parchment' : 'obsidian';
+    const nextTheme =
+      readerTheme === 'obsidian' ? (isModern ? 'modern' : 'parchment') : 'obsidian';
     setReaderTheme(nextTheme);
-    saveReaderTheme(userId, nextTheme);
+    if (nextTheme === 'obsidian' || nextTheme === 'parchment') {
+      saveReaderTheme(userId, nextTheme);
+    }
   };
 
   const handleNarrate = () => {

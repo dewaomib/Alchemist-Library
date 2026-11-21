@@ -165,5 +165,18 @@ export const api = {
     apiRequest('/reviews', {
       method: 'POST',
       body: payload
+    }),
+  deleteReview: (reviewId) =>
+    apiRequest(`/reviews/${encodeURIComponent(reviewId)}`, {
+      method: 'DELETE'
+    }),
+  clearReviewRating: (reviewId) =>
+    apiRequest(`/reviews/${encodeURIComponent(reviewId)}/clear-rating`, {
+      method: 'PATCH'
+    }),
+  resetBookReviews: (bookId, mode = 'all') =>
+    apiRequest(`/books/${encodeURIComponent(bookId)}/reviews/reset`, {
+      method: 'POST',
+      body: { mode }
     })
 };

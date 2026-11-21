@@ -16,8 +16,9 @@ export default function RejectionReasonModal({
       <div
         className="max-w-lg w-full rounded-2xl border p-6 sm:p-8 space-y-5 relative shadow-2xl animate-fadeIn"
         style={{
-          backgroundColor: '#1E1916',
-          borderColor: '#EF4444'
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-danger)',
+          boxShadow: 'var(--theme-shadow-modal)'
         }}
       >
         <button

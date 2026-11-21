@@ -2,51 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   GLOBAL THEME ENGINE — CSS VARIABLES (KLASIK vs MODERN)
+   ========================================================================== */
+:root,
+[data-theme="classic"] {
+  --theme-bg: #12100E;
+  --theme-bg-deep: #0D0B09;
+  --theme-bg-footer: #0E0C0A;
+  --theme-bg-sidebar: #161210;
+  --theme-bg-header: rgba(18, 16, 14, 0.94);
+  --theme-surface: #1E1916;
+  --theme-surface-alt: #171311;
+  --theme-surface-elevated: #28221D;
+  --theme-card-bg: linear-gradient(135deg, rgba(30, 25, 22, 0.95) 0%, rgba(20, 17, 15, 0.98) 100%);
+  --theme-banner-bg: radial-gradient(circle at 90% 10%, rgba(212, 175, 55, 0.22), rgba(16, 185, 129, 0.10) 45%, #1E1916 90%);
+  --theme-banner-border: rgba(212, 175, 55, 0.45);
+  --theme-hero-bg: radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.18), rgba(16, 185, 129, 0.10) 40%, #1E1916 85%);
+  --theme-hero-border: rgba(212, 175, 55, 0.35);
+  --theme-mentor-banner-bg: radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.22), rgba(16, 185, 129, 0.08) 45%, #1E1916 90%);
+  --theme-mentor-banner-border: #38BDF8;
+  --theme-leaderboard-bg: radial-gradient(circle at 85% 15%, rgba(212, 175, 55, 0.18), rgba(16, 185, 129, 0.08) 45%, #1E1916 88%);
+  --theme-brand-icon-bg: radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.30), rgba(16, 185, 129, 0.15));
+  --theme-border: rgba(212, 175, 55, 0.22);
+  --theme-border-strong: rgba(212, 175, 55, 0.45);
+  --theme-text: #F4E8C1;
+  --theme-text-muted: #A89F91;
+  --theme-accent: #D4AF37;
+  --theme-accent-soft: rgba(212, 175, 55, 0.15);
+  --theme-emerald: #10B981;
+  --theme-danger: #EF4444;
+  --theme-font-heading: 'Cinzel', serif;
+  --theme-font-body: 'Plus Jakarta Sans', sans-serif;
+  --theme-radius-card: 1rem;
+  --theme-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --theme-shadow-card-hover: 0 8px 30px rgba(212, 175, 55, 0.12);
+  --theme-shadow-modal: 0 25px 60px -15px rgba(0, 0, 0, 0.95);
+  --theme-scrollbar-track: #12100E;
+  --theme-scrollbar-thumb: #2D251F;
+  --theme-scrollbar-hover: #D4AF37;
+}
+
+[data-theme="modern"] {
+  --theme-bg: #F8FAFC;
+  --theme-bg-deep: #F1F5F9;
+  --theme-bg-footer: #FFFFFF;
+  --theme-bg-sidebar: #FFFFFF;
+  --theme-bg-header: rgba(255, 255, 255, 0.94);
+  --theme-surface: #FFFFFF;
+  --theme-surface-alt: #F8FAFC;
+  --theme-surface-elevated: #F1F5F9;
+  --theme-card-bg: #FFFFFF;
+  --theme-banner-bg: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 55%, #ECFDF5 100%);
+  --theme-banner-border: #BFDBFE;
+  --theme-hero-bg: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 52%, #ECFDF5 100%);
+  --theme-hero-border: #CBD5E1;
+  --theme-mentor-banner-bg: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 58%, #ECFEFF 100%);
+  --theme-mentor-banner-border: #93C5FD;
+  --theme-leaderboard-bg: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 60%, #EFF6FF 100%);
+  --theme-brand-icon-bg: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  --theme-border: #E2E8F0;
+  --theme-border-strong: #CBD5E1;
+  --theme-text: #0F172A;
+  --theme-text-muted: #475569;
+  --theme-accent: #2563EB;
+  --theme-accent-soft: #EFF6FF;
+  --theme-emerald: #059669;
+  --theme-danger: #DC2626;
+  --theme-font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --theme-font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --theme-radius-card: 0.75rem;
+  --theme-shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --theme-shadow-card-hover: 0 10px 25px -8px rgba(37, 99, 235, 0.14), 0 4px 10px -4px rgba(15, 23, 42, 0.06);
+  --theme-shadow-modal: 0 24px 54px -16px rgba(15, 23, 42, 0.25);
+  --theme-scrollbar-track: #F1F5F9;
+  --theme-scrollbar-thumb: #CBD5E1;
+  --theme-scrollbar-hover: #2563EB;
+}
+
 @layer base {
   body {
-    background-color: #12100E;
-    color: #F4E8C1;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--theme-bg);
+    color: var(--theme-text);
+    font-family: var(--theme-font-body);
+    transition: background-color 200ms ease, color 180ms ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cinzel', serif;
+    font-family: var(--theme-font-heading);
     letter-spacing: 0.03em;
   }
 }
 
-/* Custom Scrollbar for Medieval Fantasy feel */
+.font-cinzel {
+  font-family: var(--theme-font-heading);
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #12100E;
+  background: var(--theme-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2D251F;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: var(--theme-scrollbar-thumb);
+  border: 1px solid var(--theme-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
+  background: var(--theme-scrollbar-hover);
 }
 
-/* Alchemical Card Glassmorphism */
+/* Alchemical / Modern Card Surface */
 .parchment-card {
-  background: linear-gradient(135deg, rgba(30, 25, 22, 0.95) 0%, rgba(20, 17, 15, 0.98) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: var(--theme-card-bg);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius-card);
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--theme-shadow-card);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .parchment-card:hover {
-  border-color: rgba(212, 175, 55, 0.45);
-  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.12);
+  border-color: var(--theme-border-strong);
+  box-shadow: var(--theme-shadow-card-hover);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(90deg, #F4E8C1 0%, #D4AF37 50%, #F4E8C1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Gold Glow Text */
@@ -84,20 +174,17 @@
   opacity: 0.6;
 }
 
-/* Shimmer animation keyframes */
 @keyframes shimmer {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-/* Noise overlay for aged medieval texture */
 .medieval-texture {
   background-image: radial-gradient(rgba(212, 175, 55, 0.04) 1px, transparent 0);
   background-size: 24px 24px;
 }
 
-/* Open Ancient Grimoire / Scroll Folio Surface */
 .scroll-folio {
   background:
     radial-gradient(circle at top left, rgba(212, 175, 55, 0.09), transparent 45%),
@@ -109,7 +196,6 @@
     0 25px 60px rgba(0, 0, 0, 0.85);
 }
 
-/* Wooden & Brass Scroll Roller Bar */
 .scroll-roller {
   background: linear-gradient(180deg, #5c4322 0%, #3a2914 45%, #1e1409 100%);
   box-shadow:
@@ -120,4 +206,533 @@
 .scroll-cap {
   background: linear-gradient(135deg, #f3d87e 0%, #d4af37 50%, #8a6a12 100%);
   box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+}
+
+/* ==========================================================================
+   MODERN THEME (CLEAN CONTEMPORARY LIGHT — #F8FAFC / #FFFFFF / #2563EB / #059669)
+   ========================================================================== */
+[data-theme="modern"] body {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+[data-theme="modern"] h1,
+[data-theme="modern"] h2,
+[data-theme="modern"] h3,
+[data-theme="modern"] h4,
+[data-theme="modern"] h5,
+[data-theme="modern"] h6,
+[data-theme="modern"] .font-cinzel {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  letter-spacing: -0.015em;
+}
+
+[data-theme="modern"] .gold-gradient-text {
+  background: linear-gradient(90deg, #0F172A 0%, #2563EB 55%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="modern"] .gold-glow,
+[data-theme="modern"] .emerald-glow,
+[data-theme="modern"] .purple-glow {
+  text-shadow: none;
+}
+
+[data-theme="modern"] .parchment-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="modern"] .parchment-card:hover {
+  border-color: #93C5FD !important;
+  box-shadow: 0 10px 25px -10px rgba(37, 99, 235, 0.16), 0 4px 10px -4px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="modern"] .rounded-2xl {
+  border-radius: 0.75rem;
+}
+
+/* Primary Page, Sidebar, Header & Footer Surfaces */
+[data-theme="modern"] .bg-\[\#12100E\],
+[data-theme="modern"] .bg-\[\#12100E\]\/90,
+[data-theme="modern"] .bg-\[\#12100E\]\/80,
+[data-theme="modern"] .bg-\[\#12100E\]\/75,
+[data-theme="modern"] .bg-\[\#12100E\]\/70,
+[data-theme="modern"] .bg-obsidian {
+  background-color: #F8FAFC !important;
+}
+
+[data-theme="modern"] .bg-\[\#161210\],
+[data-theme="modern"] .bg-\[\#1E1916\],
+[data-theme="modern"] .bg-\[\#1E1916\]\/60,
+[data-theme="modern"] .bg-\[\#171311\],
+[data-theme="modern"] .bg-\[\#1A1512\],
+[data-theme="modern"] .bg-leather,
+[data-theme="modern"] .bg-leather-dark,
+[data-theme="modern"] .bg-leather-light {
+  background-color: #FFFFFF !important;
+}
+
+[data-theme="modern"] .bg-\[\#0D0B09\],
+[data-theme="modern"] .bg-\[\#0E0C0A\],
+[data-theme="modern"] .bg-obsidian-deep,
+[data-theme="modern"] .bg-stone-950,
+[data-theme="modern"] .bg-stone-900,
+[data-theme="modern"] .bg-stone-900\/60,
+[data-theme="modern"] .bg-stone-800\/70 {
+  background-color: #F1F5F9 !important;
+}
+
+/* Translucent dark inner panels -> clean soft light surfaces (NEVER override fixed modal overlays) */
+[data-theme="modern"] .bg-black\/10:not(.fixed),
+[data-theme="modern"] .bg-black\/20:not(.fixed),
+[data-theme="modern"] .bg-black\/25:not(.fixed),
+[data-theme="modern"] .bg-black\/30:not(.fixed),
+[data-theme="modern"] .bg-black\/35:not(.fixed),
+[data-theme="modern"] .bg-black\/40:not(.fixed),
+[data-theme="modern"] .bg-black\/50:not(.fixed),
+[data-theme="modern"] .bg-black\/60:not(.fixed) {
+  background-color: #F8FAFC !important;
+}
+
+/* Modal overlay backdrop softened cleanly for modern light mode */
+[data-theme="modern"] .fixed.inset-0.bg-black\/85,
+[data-theme="modern"] .fixed.inset-0.bg-black\/80,
+[data-theme="modern"] .fixed.inset-0.bg-black\/90,
+[data-theme="modern"] .fixed.inset-0.bg-black\/75 {
+  background-color: rgba(15, 23, 42, 0.55) !important;
+}
+
+/* Dark tinted status cards/badges -> Clean soft modern tints */
+[data-theme="modern"] .bg-emerald-950,
+[data-theme="modern"] .bg-emerald-950\/20,
+[data-theme="modern"] .bg-emerald-950\/40,
+[data-theme="modern"] .bg-emerald-950\/60,
+[data-theme="modern"] .bg-emerald-950\/70,
+[data-theme="modern"] .bg-emerald-950\/80,
+[data-theme="modern"] .bg-emerald-950\/85,
+[data-theme="modern"] .bg-emerald-950\/90,
+[data-theme="modern"] .bg-emerald-500\/10,
+[data-theme="modern"] .bg-emerald-500\/15,
+[data-theme="modern"] .bg-emerald-500\/20 {
+  background-color: #ECFDF5 !important;
+}
+
+[data-theme="modern"] .bg-amber-950,
+[data-theme="modern"] .bg-amber-950\/15,
+[data-theme="modern"] .bg-amber-950\/25,
+[data-theme="modern"] .bg-amber-950\/60,
+[data-theme="modern"] .bg-amber-950\/70,
+[data-theme="modern"] .bg-amber-950\/80,
+[data-theme="modern"] .bg-amber-950\/90,
+[data-theme="modern"] .bg-amber-900\/35,
+[data-theme="modern"] .bg-amber-500\/10,
+[data-theme="modern"] .bg-amber-500\/15,
+[data-theme="modern"] .bg-amber-500\/20 {
+  background-color: #FFFBEB !important;
+}
+
+[data-theme="modern"] .bg-purple-950,
+[data-theme="modern"] .bg-purple-950\/30,
+[data-theme="modern"] .bg-purple-950\/80,
+[data-theme="modern"] .bg-purple-900\/40,
+[data-theme="modern"] .bg-purple-500\/10,
+[data-theme="modern"] .bg-purple-500\/15,
+[data-theme="modern"] .bg-purple-500\/20 {
+  background-color: #F5F3FF !important;
+}
+
+[data-theme="modern"] .bg-rose-950\/20,
+[data-theme="modern"] .bg-rose-950\/25,
+[data-theme="modern"] .bg-rose-950\/30,
+[data-theme="modern"] .bg-rose-950\/40,
+[data-theme="modern"] .bg-rose-950\/50,
+[data-theme="modern"] .bg-rose-900\/40,
+[data-theme="modern"] .bg-red-950\/80,
+[data-theme="modern"] .bg-rose-500\/10,
+[data-theme="modern"] .bg-rose-500\/15,
+[data-theme="modern"] .bg-rose-500\/20 {
+  background-color: #FEF2F2 !important;
+}
+
+[data-theme="modern"] .bg-sky-500\/10,
+[data-theme="modern"] .bg-sky-500\/15,
+[data-theme="modern"] .bg-sky-500\/20 {
+  background-color: #EFF6FF !important;
+}
+
+/* Primary Gold Accent Fills -> Sapphire Blue (#2563EB) */
+[data-theme="modern"] .bg-\[\#D4AF37\],
+[data-theme="modern"] .bg-gold-alchemy {
+  background-color: #2563EB !important;
+}
+
+[data-theme="modern"] .bg-\[\#D4AF37\]\/8,
+[data-theme="modern"] .bg-\[\#D4AF37\]\/10,
+[data-theme="modern"] .bg-\[\#D4AF37\]\/15,
+[data-theme="modern"] .bg-\[\#D4AF37\]\/20,
+[data-theme="modern"] .bg-\[\#D4AF37\]\/25,
+[data-theme="modern"] .bg-\[\#D4AF37\]\/30,
+[data-theme="modern"] .bg-gold-alchemy\/10,
+[data-theme="modern"] .bg-gold-alchemy\/15,
+[data-theme="modern"] .bg-gold-alchemy\/20,
+[data-theme="modern"] .bg-gold-alchemy\/25 {
+  background-color: #EFF6FF !important;
+}
+
+/* Sidebar active item gradient in Modern mode */
+[data-theme="modern"] .from-\[\#D4AF37\]\/18 {
+  background-image: linear-gradient(90deg, #EFF6FF 0%, #F8FAFC 100%) !important;
+}
+
+/* White translucent fills on light surfaces */
+[data-theme="modern"] .bg-white\/5,
+[data-theme="modern"] .bg-white\/10,
+[data-theme="modern"] .bg-white\/15 {
+  background-color: #F1F5F9 !important;
+}
+
+/* Hover States in Modern Mode */
+[data-theme="modern"] .hover\:bg-white\/5:hover,
+[data-theme="modern"] .hover\:bg-white\/10:hover,
+[data-theme="modern"] .hover\:bg-white\/15:hover,
+[data-theme="modern"] .hover\:bg-\[\#1E1916\]:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/\[0\.05\]:hover {
+  background-color: #F1F5F9 !important;
+}
+
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/10:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/15:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/20:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/25:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]\/30:hover {
+  background-color: #DBEAFE !important;
+}
+
+[data-theme="modern"] .hover\:bg-amber-400:hover,
+[data-theme="modern"] .hover\:bg-\[\#D4AF37\]:hover {
+  background-color: #1D4ED8 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="modern"] .hover\:bg-emerald-500\/25:hover,
+[data-theme="modern"] .hover\:bg-emerald-500\/30:hover {
+  background-color: #D1FAE5 !important;
+}
+
+[data-theme="modern"] .hover\:bg-rose-500\/25:hover,
+[data-theme="modern"] .hover\:bg-rose-500\/30:hover,
+[data-theme="modern"] .hover\:bg-rose-900\/40:hover {
+  background-color: #FEE2E2 !important;
+}
+
+[data-theme="modern"] .hover\:bg-purple-500\/25:hover,
+[data-theme="modern"] .hover\:bg-purple-500\/30:hover,
+[data-theme="modern"] .hover\:bg-purple-900\/40:hover {
+  background-color: #EDE9FE !important;
+}
+
+/* Primary & Secondary Typography (Guaranteed High Contrast on #FFFFFF/#F8FAFC) */
+[data-theme="modern"] .text-\[\#F4E8C1\],
+[data-theme="modern"] .text-\[\#F4E8C1\]\/90,
+[data-theme="modern"] .text-\[\#F4E8C1\]\/80,
+[data-theme="modern"] .text-parchment,
+[data-theme="modern"] .text-parchment\/95,
+[data-theme="modern"] .text-\[\#C8BFA9\],
+[data-theme="modern"] .text-stone-200,
+[data-theme="modern"] .text-stone-300 {
+  color: #0F172A !important;
+}
+
+[data-theme="modern"] .text-\[\#A89F91\],
+[data-theme="modern"] .text-\[\#A89F91\]\/90,
+[data-theme="modern"] .text-\[\#A89F91\]\/60,
+[data-theme="modern"] .text-parchment-muted,
+[data-theme="modern"] .text-stone-400,
+[data-theme="modern"] .text-stone-500 {
+  color: #475569 !important;
+}
+
+/* Antique Gold text -> Sapphire Blue (#2563EB) */
+[data-theme="modern"] .text-\[\#D4AF37\],
+[data-theme="modern"] .text-\[\#D4AF37\]\/90,
+[data-theme="modern"] .text-\[\#D4AF37\]\/80,
+[data-theme="modern"] .text-\[\#D4AF37\]\/75,
+[data-theme="modern"] .text-\[\#D4AF37\]\/60,
+[data-theme="modern"] .text-gold-alchemy,
+[data-theme="modern"] .text-gold-light {
+  color: #2563EB !important;
+}
+
+/* Status & Accent Typography on Light Surfaces */
+[data-theme="modern"] .text-emerald-200,
+[data-theme="modern"] .text-emerald-300,
+[data-theme="modern"] .text-emerald-400,
+[data-theme="modern"] .text-emerald-400\/80,
+[data-theme="modern"] .text-emerald-400\/90,
+[data-theme="modern"] .text-potion-emerald {
+  color: #059669 !important;
+}
+
+[data-theme="modern"] .text-amber-200,
+[data-theme="modern"] .text-amber-300,
+[data-theme="modern"] .text-amber-300\/80,
+[data-theme="modern"] .text-amber-300\/90,
+[data-theme="modern"] .text-amber-400,
+[data-theme="modern"] .text-potion-amber {
+  color: #B45309 !important;
+}
+
+[data-theme="modern"] .text-purple-200,
+[data-theme="modern"] .text-purple-300,
+[data-theme="modern"] .text-purple-400,
+[data-theme="modern"] .text-purple-400\/80,
+[data-theme="modern"] .text-potion-purple {
+  color: #6D28D9 !important;
+}
+
+[data-theme="modern"] .text-sky-200,
+[data-theme="modern"] .text-sky-300,
+[data-theme="modern"] .text-sky-400 {
+  color: #0369A1 !important;
+}
+
+[data-theme="modern"] .text-rose-200,
+[data-theme="modern"] .text-rose-200\/90,
+[data-theme="modern"] .text-rose-300,
+[data-theme="modern"] .text-rose-300\/80,
+[data-theme="modern"] .text-rose-400,
+[data-theme="modern"] .text-red-300,
+[data-theme="modern"] .text-potion-crimson {
+  color: #DC2626 !important;
+}
+
+[data-theme="modern"] .text-\[\#25D366\] {
+  color: #047857 !important;
+}
+
+[data-theme="modern"] .text-white\/15,
+[data-theme="modern"] .text-white\/20 {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="modern"] .hover\:text-\[\#F4E8C1\]:hover {
+  color: #0F172A !important;
+}
+
+[data-theme="modern"] .hover\:text-\[\#D4AF37\]:hover {
+  color: #2563EB !important;
+}
+
+/* Solid Accent Buttons MUST keep crisp White text in Modern Mode */
+[data-theme="modern"] .bg-\[\#D4AF37\].text-\[\#12100E\],
+[data-theme="modern"] .bg-gold-alchemy.text-obsidian,
+[data-theme="modern"] .bg-emerald-500.text-\[\#12100E\],
+[data-theme="modern"] .bg-sky-400.text-\[\#12100E\],
+[data-theme="modern"] .bg-purple-500.text-white,
+[data-theme="modern"] .bg-rose-500.text-white,
+[data-theme="modern"] .bg-rose-600\/80.text-white,
+[data-theme="modern"] .bg-\[\#25D366\].text-\[\#0B1F12\] {
+  color: #FFFFFF !important;
+}
+
+[data-theme="modern"] .bg-emerald-500 {
+  background-color: #059669 !important;
+}
+
+[data-theme="modern"] .bg-sky-400 {
+  background-color: #2563EB !important;
+}
+
+/* Crisp Hairline Modern Borders (#E2E8F0 & Accent Borders) */
+[data-theme="modern"] .border-\[\#D4AF37\]\/15,
+[data-theme="modern"] .border-\[\#D4AF37\]\/20,
+[data-theme="modern"] .border-\[\#D4AF37\]\/25,
+[data-theme="modern"] .border-\[\#D4AF37\]\/30,
+[data-theme="modern"] .border-white\/5,
+[data-theme="modern"] .border-white\/10,
+[data-theme="modern"] .border-white\/15,
+[data-theme="modern"] .border-white\/20,
+[data-theme="modern"] .border-stone-700,
+[data-theme="modern"] .border-stone-700\/70,
+[data-theme="modern"] .border-stone-800,
+[data-theme="modern"] .border-gold-alchemy\/20,
+[data-theme="modern"] .border-gold-alchemy\/25,
+[data-theme="modern"] .border-gold-alchemy\/30 {
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="modern"] .divide-\[\#D4AF37\]\/10 > :not([hidden]) ~ :not([hidden]),
+[data-theme="modern"] .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+[data-theme="modern"] .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="modern"] .border-\[\#D4AF37\]\/35,
+[data-theme="modern"] .border-\[\#D4AF37\]\/40,
+[data-theme="modern"] .border-\[\#D4AF37\]\/45,
+[data-theme="modern"] .border-\[\#D4AF37\]\/50,
+[data-theme="modern"] .border-\[\#D4AF37\]\/55,
+[data-theme="modern"] .border-\[\#D4AF37\]\/60,
+[data-theme="modern"] .border-\[\#D4AF37\]\/65,
+[data-theme="modern"] .border-\[\#D4AF37\]\/70,
+[data-theme="modern"] .border-\[\#D4AF37\],
+[data-theme="modern"] .border-gold-alchemy,
+[data-theme="modern"] .border-gold-alchemy\/40,
+[data-theme="modern"] .border-gold-alchemy\/50 {
+  border-color: #93C5FD !important;
+}
+
+[data-theme="modern"] .border-emerald-500\/30,
+[data-theme="modern"] .border-emerald-500\/35,
+[data-theme="modern"] .border-emerald-500\/40,
+[data-theme="modern"] .border-emerald-500\/45,
+[data-theme="modern"] .border-emerald-500\/50,
+[data-theme="modern"] .border-emerald-400\/60 {
+  border-color: #6EE7B7 !important;
+}
+
+[data-theme="modern"] .border-amber-500\/30,
+[data-theme="modern"] .border-amber-500\/35,
+[data-theme="modern"] .border-amber-500\/40,
+[data-theme="modern"] .border-amber-500\/45,
+[data-theme="modern"] .border-amber-400,
+[data-theme="modern"] .border-amber-400\/60 {
+  border-color: #FCD34D !important;
+}
+
+[data-theme="modern"] .border-rose-500\/25,
+[data-theme="modern"] .border-rose-500\/30,
+[data-theme="modern"] .border-rose-500\/35,
+[data-theme="modern"] .border-rose-500\/40,
+[data-theme="modern"] .border-rose-500\/45,
+[data-theme="modern"] .border-rose-500\/50,
+[data-theme="modern"] .border-rose-400\/60 {
+  border-color: #FDA4AF !important;
+}
+
+[data-theme="modern"] .border-purple-500\/30,
+[data-theme="modern"] .border-purple-500\/35,
+[data-theme="modern"] .border-purple-500\/40,
+[data-theme="modern"] .border-purple-400\/60 {
+  border-color: #C4B5FD !important;
+}
+
+[data-theme="modern"] .border-sky-500\/30,
+[data-theme="modern"] .border-sky-500\/40,
+[data-theme="modern"] .border-sky-400 {
+  border-color: #93C5FD !important;
+}
+
+/* Form Controls in Modern Mode */
+[data-theme="modern"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+[data-theme="modern"] select,
+[data-theme="modern"] textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+[data-theme="modern"] input:focus,
+[data-theme="modern"] select:focus,
+[data-theme="modern"] textarea:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="modern"] input::placeholder,
+[data-theme="modern"] textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Fill Stars in Modern Mode: warm crisp gold star icons remain golden */
+[data-theme="modern"] .fill-\[\#D4AF37\],
+[data-theme="modern"] .fill-amber-400 {
+  fill: #F59E0B !important;
+  color: #F59E0B !important;
+}
+
+/* ==========================================================================
+   TANGIBLE BOOK COVER THUMBNAILS (KLASIK & MODERN THEMES)
+   Guaranteed solid dark background & spine, so book covers NEVER disappear or blend into theme
+   ========================================================================== */
+.book-cover-art {
+  position: relative !important;
+  background-color: #171412 !important; /* Solid dark fallback: guarantees cover is never white/transparent */
+  border-radius: 0.75rem !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.45), 0 2px 6px -1px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+/* Tactile book spine accent along the left edge */
+.book-cover-art::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.8) 0%, rgba(212, 175, 55, 0.25) 100%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.book-cover-art:hover {
+  box-shadow: 0 10px 24px -2px rgba(212, 175, 55, 0.35), 0 4px 10px -2px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(212, 175, 55, 0.75) !important;
+}
+
+/* Modern Theme Overrides: High-contrast cover with deep dark slate core on clean light parchment */
+[data-theme="modern"] .book-cover-art {
+  background-color: #0F172A !important; /* Solid dark navy/slate fallback */
+  border: 1px solid rgba(51, 65, 85, 0.5) !important;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.35), 0 4px 8px -2px rgba(15, 23, 42, 0.2) !important;
+}
+
+[data-theme="modern"] .book-cover-art::before {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.85) 0%, rgba(37, 99, 235, 0.4) 100%);
+}
+
+[data-theme="modern"] .book-cover-art:hover {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 14px 28px -4px rgba(37, 99, 235, 0.35), 0 6px 12px -2px rgba(15, 23, 42, 0.2) !important;
+}
+
+/* High-contrast typography inside book covers (protected against theme overrides) */
+.book-cover-art .book-cover-title,
+[data-theme="modern"] .book-cover-art .book-cover-title {
+  color: #F8FAFC !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.book-cover-art .book-cover-rune,
+[data-theme="modern"] .book-cover-art .book-cover-rune {
+  color: #FCD34D !important;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
+}
+
+.book-cover-art .book-cover-header,
+[data-theme="modern"] .book-cover-art .book-cover-header {
+  color: #FBBF24 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Protect Theme Toggle active Modern button styling */
+[data-theme="modern"] .theme-toggle-pill {
+  background-color: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+}
+[data-theme="modern"] .theme-toggle-btn[aria-pressed="true"] {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  border-color: #2563EB !important;
+}
+[data-theme="modern"] .theme-toggle-btn[aria-pressed="true"] svg,
+[data-theme="modern"] .theme-toggle-btn[aria-pressed="true"] span {
+  color: #FFFFFF !important;
 }

@@ -4,6 +4,30 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'from-indigo-950',
+    'via-purple-900',
+    'to-slate-900',
+    'from-emerald-950',
+    'via-teal-950',
+    'to-zinc-950',
+    'from-cyan-950',
+    'via-blue-950',
+    'to-neutral-950',
+    'from-yellow-950',
+    'via-amber-900',
+    'to-neutral-950',
+    'from-amber-950',
+    'via-stone-900',
+    'from-amber-950',
+    'to-black',
+    'from-sky-950',
+    'via-cyan-900',
+    'to-slate-950',
+    'bg-gradient-to-br',
+    'bg-gradient-to-tr',
+    'bg-gradient-to-r'
+  ],
   theme: {
     extend: {
       colors: {

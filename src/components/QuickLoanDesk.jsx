@@ -30,6 +30,7 @@ import {
 import {
   buildBookSearchText,
   buildMemberSearchText,
+  getBookCoverVisual,
   getInitials,
   matchBookByCode,
   matchMemberByCode
@@ -550,13 +551,19 @@ export default function QuickLoanDesk({
             {selectedBook ? (
               <div className="space-y-3 animate-fadeIn">
                 <div className="flex items-start gap-3">
-                  <div
-                    className={`w-12 h-16 rounded-lg bg-gradient-to-br ${
-                      selectedBook.coverGradient || 'from-amber-950 to-black'
-                    } border border-[#D4AF37]/40 flex items-center justify-center text-xl text-[#D4AF37] shrink-0`}
-                  >
-                    {selectedBook.coverRune || '✦'}
-                  </div>
+                  {(() => {
+                    const visual = getBookCoverVisual(selectedBook);
+                    return (
+                      <div
+                        className={`book-cover-art w-12 h-16 rounded-lg bg-gradient-to-br ${
+                          selectedBook.coverGradient || visual.coverGradient
+                        } border border-[#D4AF37]/40 flex items-center justify-center text-xl text-[#D4AF37] shrink-0 relative overflow-hidden`}
+                        style={{ background: selectedBook.coverGradientStyle || visual.gradient }}
+                      >
+                        <span className="book-cover-rune relative z-10">{selectedBook.coverRune || visual.rune}</span>
+                      </div>
+                    );
+                  })()}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1 mb-0.5">
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-semibold">

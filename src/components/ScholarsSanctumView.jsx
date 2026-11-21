@@ -17,6 +17,7 @@ import {
   Quote
 } from 'lucide-react';
 import { formatDateID } from '../utils/loanUtils';
+import { getBookCoverVisual } from '../utils/libraryUtils';
 import {
   getReadingLogStatusMeta,
   getReadingLogWordCount
@@ -47,9 +48,8 @@ export default function ScholarsSanctumView({
       <section
         className="rounded-2xl p-6 sm:p-8 border relative overflow-hidden"
         style={{
-          background:
-            'radial-gradient(circle at 90% 10%, rgba(212, 175, 55, 0.22), rgba(16, 185, 129, 0.10) 45%, #1E1916 90%)',
-          borderColor: '#D4AF37'
+          background: 'var(--theme-banner-bg)',
+          borderColor: 'var(--theme-banner-border)'
         }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -90,7 +90,7 @@ export default function ScholarsSanctumView({
                         100,
                         ((studentXp - currentRank.minXp) /
                           (currentRank.nextXp - currentRank.minXp)) *
-                          100
+                        100
                       )}%`,
                       background: 'linear-gradient(90deg, #10B981 0%, #D4AF37 100%)'
                     }}
@@ -242,19 +242,25 @@ export default function ScholarsSanctumView({
                   <div>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3.5">
-                        <div
-                          className={`w-14 h-20 rounded-xl bg-gradient-to-br ${
-                            book?.coverGradient || 'from-amber-950 to-black'
-                          } border border-[#D4AF37]/50 p-1.5 flex flex-col justify-between shrink-0 shadow-md`}
-                        >
-                          <span className="text-[9px] text-[#D4AF37]">✦</span>
-                          <span className="text-xl text-center text-[#D4AF37]">
-                            {book?.coverRune || '☉'}
-                          </span>
-                          <span className="text-[8px] text-center text-[#F4E8C1] truncate">
-                            {book?.title}
-                          </span>
-                        </div>
+                        {(() => {
+                          const visual = getBookCoverVisual(book);
+                          return (
+                            <div
+                              className={`book-cover-art w-14 h-20 rounded-xl bg-gradient-to-br ${
+                                book?.coverGradient || visual.coverGradient
+                              } border border-[#D4AF37]/50 p-1.5 flex flex-col justify-between shrink-0 shadow-md relative overflow-hidden`}
+                              style={{ background: book?.coverGradientStyle || visual.gradient }}
+                            >
+                              <span className="book-cover-header text-[9px] text-[#D4AF37] relative z-10 pl-0.5">✦</span>
+                              <span className="book-cover-rune text-xl text-center text-[#D4AF37] relative z-10">
+                                {book?.coverRune || visual.rune}
+                              </span>
+                              <span className="book-cover-title text-[8px] text-center text-[#F4E8C1] truncate relative z-10">
+                                {book?.title}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         <div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
@@ -386,11 +392,10 @@ export default function ScholarsSanctumView({
                 return (
                   <div
                     key={log.id}
-                    className={`parchment-card rounded-2xl p-5 space-y-3 border ${
-                      log.status === 'graded'
-                        ? 'border-emerald-500/30'
-                        : 'border-amber-500/30'
-                    }`}
+                    className={`parchment-card rounded-2xl p-5 space-y-3 border ${log.status === 'graded'
+                      ? 'border-emerald-500/30'
+                      : 'border-amber-500/30'
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-2.5 min-w-0">
@@ -555,13 +560,12 @@ export default function ScholarsSanctumView({
                     type="button"
                     onClick={() => onClaimQuest(quest)}
                     disabled={!isCompleted || quest.claimed}
-                    className={`w-full py-2.5 rounded-xl text-xs font-cinzel font-bold transition-all flex items-center justify-center gap-2 ${
-                      quest.claimed
-                        ? 'bg-white/5 text-[#A89F91] border border-white/10 cursor-default'
-                        : isCompleted
+                    className={`w-full py-2.5 rounded-xl text-xs font-cinzel font-bold transition-all flex items-center justify-center gap-2 ${quest.claimed
+                      ? 'bg-white/5 text-[#A89F91] border border-white/10 cursor-default'
+                      : isCompleted
                         ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 shadow-lg'
                         : 'bg-white/5 text-[#A89F91] cursor-not-allowed border border-white/5'
-                    }`}
+                      }`}
                   >
                     {quest.claimed ? (
                       <>
@@ -594,11 +598,10 @@ export default function ScholarsSanctumView({
             {badges.map((badge) => (
               <div
                 key={badge.id}
-                className={`p-3.5 rounded-xl border text-center transition-all ${
-                  badge.unlocked
-                    ? 'bg-black/40 border-[#D4AF37]/50 shadow-md'
-                    : 'bg-black/20 border-white/5 opacity-50'
-                }`}
+                className={`p-3.5 rounded-xl border text-center transition-all ${badge.unlocked
+                  ? 'bg-black/40 border-[#D4AF37]/50 shadow-md'
+                  : 'bg-black/20 border-white/5 opacity-50'
+                  }`}
               >
                 <div
                   className="w-10 h-10 mx-auto rounded-full flex items-center justify-center text-lg mb-2"

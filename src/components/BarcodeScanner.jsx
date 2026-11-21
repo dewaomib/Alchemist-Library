@@ -260,14 +260,17 @@ export default function BarcodeScanner({
       <div
         className="w-full max-w-2xl rounded-2xl border shadow-2xl overflow-hidden my-4"
         style={{
-          backgroundColor: '#1E1916',
+          backgroundColor: 'var(--theme-surface)',
           borderColor: `${accentColor}99`,
-          boxShadow: `0 25px 70px -20px rgba(0,0,0,0.95), 0 0 35px ${accentColor}22`
+          boxShadow: 'var(--theme-shadow-modal)'
         }}
       >
         <header
           className="px-4 sm:px-6 py-4 border-b flex items-start justify-between gap-3"
-          style={{ borderColor: `${accentColor}35`, backgroundColor: '#171311' }}
+          style={{
+            borderColor: 'var(--theme-border)',
+            backgroundColor: 'var(--theme-surface-alt)'
+          }}
         >
           <div className="flex items-center gap-3">
             <div

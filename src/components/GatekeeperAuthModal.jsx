@@ -11,6 +11,8 @@ import {
   Hash
 } from 'lucide-react';
 import { PRESET_USERS } from './RoleSwitcherBar';
+import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 import { api } from '../lib/apiClient';
 import {
   KELAS_BY_JENJANG,
@@ -27,6 +29,7 @@ export default function GatekeeperAuthModal({
   onLoginSuccess,
   showToast
 }) {
+  const { isModern } = useTheme();
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register' | 'quick'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -98,7 +101,7 @@ export default function GatekeeperAuthModal({
     } catch (err) {
       setErrorMsg(
         err?.message ||
-          'Username atau kata sandi salah. Gunakan akun terdaftar (misal: admin / admin123, hendra / password123, arya / password123).'
+        'Username atau kata sandi salah. Gunakan akun terdaftar (misal: admin / admin123, hendra / password123, arya / password123).'
       );
     } finally {
       setIsLoading(false);
@@ -170,21 +173,31 @@ export default function GatekeeperAuthModal({
       <div
         className="max-w-lg w-full rounded-2xl border p-6 sm:p-8 relative my-8 text-parchment shadow-2xl"
         style={{
-          backgroundColor: '#171311',
-          borderColor: '#D4AF37',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.95)'
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-border-strong)',
+          boxShadow: 'var(--theme-shadow-modal)'
         }}
       >
-        {/* Top Gold Bar */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-potion-emerald via-gold-alchemy to-amber-500 rounded-t-2xl" />
+        {/* Top Accent Bar */}
+        <div
+          className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-2xl ${isModern
+            ? 'bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#059669]'
+            : 'bg-gradient-to-r from-potion-emerald via-gold-alchemy to-amber-500'
+            }`}
+        />
 
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 border border-[#D4AF37]/30 flex items-center justify-center text-[#A89F91] hover:text-[#F4E8C1] hover:border-[#D4AF37] transition-all"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {/* Top Bar: Theme Toggle (Sudut Kiri Atas) & Close Button (Sudut Kanan Atas) */}
+        <div className="flex items-center justify-between gap-2 mb-4 pt-1">
+          <ThemeToggle compact />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup modal login"
+            className="w-8 h-8 rounded-full bg-black/40 border border-[#D4AF37]/30 flex items-center justify-center text-[#A89F91] hover:text-[#F4E8C1] hover:border-[#D4AF37] transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
         {/* Header */}
         <div className="text-center space-y-1.5 mb-5">
@@ -248,347 +261,344 @@ export default function GatekeeperAuthModal({
           </button>
         </div>
 
-        {/* TAB 1: USERNAME & PASSWORD LOGIN */}
-        {activeTab === 'login' && (
-          <form onSubmit={handleUsernameLogin} className="space-y-4">
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+      {/* TAB 1: USERNAME & PASSWORD LOGIN */}
+      {activeTab === 'login' && (
+        <form onSubmit={handleUsernameLogin} className="space-y-4">
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
+          <div>
+            <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+              Username Pengguna:
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                required
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Masukkan username (contoh: admin / hendra / arya / nadia.tkj)"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+            <p className="text-[10px] text-[#A89F91] mt-1">
+              Petunjuk: Ketik username <strong>admin</strong>, <strong>hendra</strong> (Guru), <strong>arya</strong> (Siswa), atau NISN.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+              Password / Kata Sandi:
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg"
+          >
+            {isLoading ? (
+              <span>Memverifikasi Username...</span>
+            ) : (
+              <>
+                <KeyRound className="w-4 h-4" />
+                <span>Masuk dengan Username</span>
+              </>
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* TAB 2: REGISTER NEW ACCOUNT (USERNAME & PASSWORD ONLY) */}
+      {activeTab === 'register' && (
+        <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                Username Pengguna:
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Username Baru:
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                <User className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Masukkan username (contoh: admin / hendra / arya / nadia.tkj)"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  value={regForm.username}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, username: e.target.value })
+                  }
+                  placeholder="contoh: budi.tkj10"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
-              <p className="text-[10px] text-[#A89F91] mt-1">
-                Petunjuk: Ketik username <strong>admin</strong>, <strong>hendra</strong> (Guru), <strong>arya</strong> (Siswa), atau NISN.
-              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                Password / Kata Sandi:
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Password:
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  value={regForm.password}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, password: e.target.value })
+                  }
+                  placeholder="Minimal 4 karakter"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg"
-            >
-              {isLoading ? (
-                <span>Memverifikasi Username...</span>
-              ) : (
-                <>
-                  <KeyRound className="w-4 h-4" />
-                  <span>Masuk dengan Username</span>
-                </>
-              )}
-            </button>
-          </form>
-        )}
-
-        {/* TAB 2: REGISTER NEW ACCOUNT (USERNAME & PASSWORD ONLY) */}
-        {activeTab === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Username Baru:
-                </label>
-                <div className="relative">
-                  <User className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={regForm.username}
-                    onChange={(e) =>
-                      setRegForm({ ...regForm, username: e.target.value })
-                    }
-                    placeholder="contoh: budi.tkj10"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Password:
-                </label>
-                <div className="relative">
-                  <Lock className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    required
-                    value={regForm.password}
-                    onChange={(e) =>
-                      setRegForm({ ...regForm, password: e.target.value })
-                    }
-                    placeholder="Minimal 4 karakter"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Nama Lengkap:
+              </label>
+              <input
+                type="text"
+                required
+                value={regForm.name}
+                onChange={(e) =>
+                  setRegForm({ ...regForm, name: e.target.value })
+                }
+                placeholder="Nama Lengkap Siswa / Guru"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+              />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Nama Lengkap:
-                </label>
+            <div>
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                NISN (Teks 10 Digit):
+              </label>
+              <div className="relative">
+                <Hash className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  required
-                  value={regForm.name}
+                  inputMode="numeric"
+                  required={regForm.role === 'siswa'}
+                  value={regForm.nisn}
                   onChange={(e) =>
-                    setRegForm({ ...regForm, name: e.target.value })
+                    setRegForm({ ...regForm, nisn: e.target.value })
                   }
-                  placeholder="Nama Lengkap Siswa / Guru"
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="Contoh: 0081234567"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl text-xs font-mono bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
-
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  NISN (Teks 10 Digit):
-                </label>
-                <div className="relative">
-                  <Hash className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    required={regForm.role === 'siswa'}
-                    value={regForm.nisn}
-                    onChange={(e) =>
-                      setRegForm({ ...regForm, nisn: e.target.value })
-                    }
-                    placeholder="Contoh: 0081234567"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs font-mono bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-              </div>
             </div>
-
-            <div className="grid grid-cols-3 gap-2.5">
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Jenjang:
-                </label>
-                <select
-                  value={regForm.jenjang}
-                  onChange={(e) => {
-                    const nextJenjang = e.target.value;
-                    const nextKelas = (KELAS_BY_JENJANG[nextJenjang] || ['10'])[0];
-                    setRegForm({
-                      ...regForm,
-                      jenjang: nextJenjang,
-                      kelas: nextKelas,
-                      jurusan: nextJenjang === 'SMK' ? 'TKJ' : 'Semua Jurusan'
-                    });
-                  }}
-                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                >
-                  <option value="SMP">SMP</option>
-                  <option value="SMA">SMA</option>
-                  <option value="SMK">SMK</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Kelas:
-                </label>
-                <select
-                  value={regForm.kelas}
-                  onChange={(e) =>
-                    setRegForm({ ...regForm, kelas: e.target.value })
-                  }
-                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                >
-                  {availableKelasOptions.map((kls) => (
-                    <option key={kls} value={kls}>
-                      Kelas {kls}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
-                  Jurusan:
-                </label>
-                <select
-                  value={regForm.jenjang === 'SMK' ? regForm.jurusan : 'Semua Jurusan'}
-                  disabled={regForm.jenjang !== 'SMK'}
-                  onChange={(e) =>
-                    setRegForm({ ...regForm, jurusan: e.target.value })
-                  }
-                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] disabled:opacity-50"
-                >
-                  {regForm.jenjang === 'SMK' ? (
-                    SMK_JURUSAN_OPTIONS.map((jur) => (
-                      <option key={jur} value={jur}>
-                        {jur}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="Semua Jurusan">Umum / Nasional</option>
-                  )}
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500 text-[#12100E] hover:bg-emerald-400 transition-all flex items-center justify-center gap-2 shadow-lg mt-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Daftarkan Akun &amp; Masuk</span>
-            </button>
-          </form>
-        )}
-
-        {/* TAB 3: QUICK CHARACTER PICK */}
-        {activeTab === 'quick' && (
-          <div className="space-y-3">
-            <p className="text-[11px] text-[#A89F91] text-center mb-2">
-              Klik salah satu akun demo di bawah untuk berpindah role secara instan:
-            </p>
-
-            {/* Admin Card */}
-            <button
-              onClick={() => handleQuickLogin(PRESET_USERS.admin)}
-              className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser?.role === 'admin'
-                  ? 'bg-amber-500/20 border-amber-500'
-                  : 'bg-black/30 border-white/10 hover:border-amber-500/60 hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg">
-                  👑
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-amber-400">
-                      {PRESET_USERS.admin.name}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
-                      @{PRESET_USERS.admin.username}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#A89F91]">
-                    {PRESET_USERS.admin.title} • {PRESET_USERS.admin.class}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            {/* Guru Card */}
-            <button
-              onClick={() => handleQuickLogin(PRESET_USERS.guru)}
-              className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser?.role === 'guru'
-                  ? 'bg-sky-500/20 border-sky-500'
-                  : 'bg-black/30 border-white/10 hover:border-sky-500/60 hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-lg">
-                  📜
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-sky-400">
-                      {PRESET_USERS.guru.name}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30">
-                      @{PRESET_USERS.guru.username}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#A89F91]">
-                    {PRESET_USERS.guru.title} • {PRESET_USERS.guru.class}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            {/* Siswa Card */}
-            <button
-              onClick={() => handleQuickLogin(PRESET_USERS.siswa)}
-              className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser?.role === 'siswa'
-                  ? 'bg-emerald-500/20 border-emerald-500'
-                  : 'bg-black/30 border-white/10 hover:border-emerald-500/60 hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg">
-                  ⚔️
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-emerald-400">
-                      {PRESET_USERS.siswa.name}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                      @{PRESET_USERS.siswa.username}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#A89F91]">
-                    NISN: {PRESET_USERS.siswa.nisn} • {PRESET_USERS.siswa.class}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-emerald-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-            </button>
           </div>
-        )}
 
-        {/* Footer info */}
-        <div className="mt-6 pt-4 border-t border-[#D4AF37]/20 flex items-center justify-between text-[11px] text-[#A89F91]">
-          <span>Sistem Autentikasi:</span>
-          <span className="text-emerald-400 font-semibold">
-            PostgreSQL + Prisma (HTTP-Only Cookie JWT)
-          </span>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Jenjang:
+              </label>
+              <select
+                value={regForm.jenjang}
+                onChange={(e) => {
+                  const nextJenjang = e.target.value;
+                  const nextKelas = (KELAS_BY_JENJANG[nextJenjang] || ['10'])[0];
+                  setRegForm({
+                    ...regForm,
+                    jenjang: nextJenjang,
+                    kelas: nextKelas,
+                    jurusan: nextJenjang === 'SMK' ? 'TKJ' : 'Semua Jurusan'
+                  });
+                }}
+                className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+              >
+                <option value="SMP">SMP</option>
+                <option value="SMA">SMA</option>
+                <option value="SMK">SMK</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Kelas:
+              </label>
+              <select
+                value={regForm.kelas}
+                onChange={(e) =>
+                  setRegForm({ ...regForm, kelas: e.target.value })
+                }
+                className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+              >
+                {availableKelasOptions.map((kls) => (
+                  <option key={kls} value={kls}>
+                    Kelas {kls}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                Jurusan:
+              </label>
+              <select
+                value={regForm.jenjang === 'SMK' ? regForm.jurusan : 'Semua Jurusan'}
+                disabled={regForm.jenjang !== 'SMK'}
+                onChange={(e) =>
+                  setRegForm({ ...regForm, jurusan: e.target.value })
+                }
+                className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] disabled:opacity-50"
+              >
+                {regForm.jenjang === 'SMK' ? (
+                  SMK_JURUSAN_OPTIONS.map((jur) => (
+                    <option key={jur} value={jur}>
+                      {jur}
+                    </option>
+                  ))
+                ) : (
+                  <option value="Semua Jurusan">Umum / Nasional</option>
+                )}
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500 text-[#12100E] hover:bg-emerald-400 transition-all flex items-center justify-center gap-2 shadow-lg mt-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Daftarkan Akun &amp; Masuk</span>
+          </button>
+        </form>
+      )}
+
+      {/* TAB 3: QUICK CHARACTER PICK */}
+      {activeTab === 'quick' && (
+        <div className="space-y-3">
+          <p className="text-[11px] text-[#A89F91] text-center mb-2">
+            Klik salah satu akun demo di bawah untuk berpindah role secara instan:
+          </p>
+
+          {/* Admin Card */}
+          <button
+            onClick={() => handleQuickLogin(PRESET_USERS.admin)}
+            className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${currentUser?.role === 'admin'
+              ? 'bg-amber-500/20 border-amber-500'
+              : 'bg-black/30 border-white/10 hover:border-amber-500/60 hover:bg-white/5'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg">
+                👑
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-amber-400">
+                    {PRESET_USERS.admin.name}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                    @{PRESET_USERS.admin.username}
+                  </span>
+                </div>
+                <p className="text-xs text-[#A89F91]">
+                  {PRESET_USERS.admin.title} • {PRESET_USERS.admin.class}
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+          </button>
+
+          {/* Guru Card */}
+          <button
+            onClick={() => handleQuickLogin(PRESET_USERS.guru)}
+            className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${currentUser?.role === 'guru'
+              ? 'bg-sky-500/20 border-sky-500'
+              : 'bg-black/30 border-white/10 hover:border-sky-500/60 hover:bg-white/5'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-lg">
+                📜
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-sky-400">
+                    {PRESET_USERS.guru.name}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30">
+                    @{PRESET_USERS.guru.username}
+                  </span>
+                </div>
+                <p className="text-xs text-[#A89F91]">
+                  {PRESET_USERS.guru.title} • {PRESET_USERS.guru.class}
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+          </button>
+
+          {/* Siswa Card */}
+          <button
+            onClick={() => handleQuickLogin(PRESET_USERS.siswa)}
+            className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${currentUser?.role === 'siswa'
+              ? 'bg-emerald-500/20 border-emerald-500'
+              : 'bg-black/30 border-white/10 hover:border-emerald-500/60 hover:bg-white/5'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg">
+                ⚔️
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-cinzel font-bold text-sm text-[#F4E8C1] group-hover:text-emerald-400">
+                    {PRESET_USERS.siswa.name}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                    @{PRESET_USERS.siswa.username}
+                  </span>
+                </div>
+                <p className="text-xs text-[#A89F91]">
+                  NISN: {PRESET_USERS.siswa.nisn} • {PRESET_USERS.siswa.class}
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-emerald-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+          </button>
         </div>
+      )}
+
+      {/* Footer info */}
+      <div className="mt-6 pt-4 border-t border-[#D4AF37]/20 flex items-center justify-between text-[11px] text-[#A89F91]">
+        <span>Sistem Autentikasi:</span>
+        <span className="text-emerald-400 font-semibold">
+          PostgreSQL + Prisma (HTTP-Only Cookie JWT)
+        </span>
       </div>
     </div>
+    </div >
   );
 }

@@ -31,11 +31,18 @@ import {
   XCircle,
   AlertCircle,
   CheckSquare,
-  BookMarked
+  BookMarked,
+  Trash2,
+  RotateCcw,
+  ShieldCheck,
+  ShieldAlert,
+  ArrowLeft,
+  ArrowUpRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from './lib/apiClient';
 import RoleSwitcherBar, { PRESET_USERS } from './components/RoleSwitcherBar';
+import ThemeToggle from './components/ThemeToggle';
 import GatekeeperAuthModal from './components/GatekeeperAuthModal';
 import EGrimoireReaderModal from './components/EGrimoireReaderModal';
 import RejectionReasonModal from './components/RejectionReasonModal';
@@ -48,6 +55,7 @@ import ClassLeaderboard from './components/ClassLeaderboard';
 import { getDigitalTomeContent } from './data/digitalTomesContent';
 import {
   enrichBook,
+  getBookCoverVisual,
   JENJANG_OPTIONS,
   KELAS_BY_JENJANG,
   SMK_JURUSAN_OPTIONS,
@@ -448,6 +456,11 @@ export default function App() {
   const [returningLoan, setReturningLoan] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [detailReviewRating, setDetailReviewRating] = useState(5);
+  const [detailReviewComment, setDetailReviewComment] = useState('');
+  const [isSubmittingDetailReview, setIsSubmittingDetailReview] = useState(false);
+  const [isModeratingReview, setIsModeratingReview] = useState(false);
+  const [moderationConfirm, setModerationConfirm] = useState(null);
 
   // Archivist Admin: Inscribe New Book Form State
   const [newBookForm, setNewBookForm] = useState({
@@ -559,6 +572,25 @@ export default function App() {
 
   // Dynamic Navigation Tabs according to Role
   const navTabs = useMemo(() => {
+    if (currentUser?.role === 'admin') {
+      return [
+        {
+          id: 'archivist',
+          label: 'Dashboard Admin',
+          sub: 'Kontrol Penuh',
+          icon: Database,
+          badgeCount: allPendingLoans.length,
+          isAdmin: true
+        },
+        {
+          id: 'vault',
+          label: 'Katalog Perpustakaan',
+          sub: 'Baca & Moderasi',
+          icon: BookOpen
+        }
+      ];
+    }
+
     const tabs = [
       { id: 'hall', label: 'The Great Hall', sub: 'Beranda', icon: Sparkles },
       { id: 'mixer', label: 'Alchemical Mixer', sub: 'Racik Buku', icon: FlaskConical, highlight: true },
@@ -581,15 +613,6 @@ export default function App() {
         icon: GraduationCap,
         badgeCount: teacherLoans.filter((l) => l.status === 'pending' || l.status === 'approved').length,
         isGuru: true
-      });
-    } else if (currentUser?.role === 'admin') {
-      tabs.push({
-        id: 'archivist',
-        label: "Archivist's Chamber",
-        sub: 'Admin Kurator',
-        icon: Database,
-        badgeCount: allPendingLoans.length,
-        isAdmin: true
       });
     }
 
@@ -662,6 +685,9 @@ export default function App() {
         setCurrentUser(loggedUser);
         if (loggedUser) {
           setStudentXp(Number(loggedUser.xp || 0));
+          if (loggedUser.role === 'admin') {
+            setActiveTab('archivist');
+          }
         }
         await syncDatabaseData(loggedUser, false);
       } catch (err) {
@@ -742,9 +768,7 @@ export default function App() {
     setStudentXp(Number(authenticatedUser.xp || 0));
 
     if (authenticatedUser.role === 'admin') {
-      if (activeTab === 'sanctum' || activeTab === 'mentor') {
-        setActiveTab('archivist');
-      }
+      setActiveTab('archivist');
     } else if (authenticatedUser.role === 'guru') {
       if (activeTab === 'sanctum' || activeTab === 'archivist') {
         setActiveTab('mentor');
@@ -1543,7 +1567,7 @@ export default function App() {
 
       const finalBook = revRes?.book || loanRes?.book;
       if (finalBook) {
-        setBooks((prev) => prev.map((b) => (b.id === finalBook.id ? finalBook : b)));
+        syncUpdatedBookInState(finalBook);
       }
       if (loanRes?.loan) {
         setLoans((prev) => prev.map((l) => (l.id === loanRes.loan.id ? loanRes.loan : l)));
@@ -1588,6 +1612,125 @@ export default function App() {
       );
     } catch (err) {
       showToast('Gagal Memproses Pengembalian', err?.message || 'Coba lagi.', 'purple');
+    }
+  };
+
+  // ==========================================
+  // HANDLERS: ULASAN BUKU & MODERASI ADMIN (POSTGRESQL)
+  // ==========================================
+  const syncUpdatedBookInState = (updatedBook) => {
+    if (!updatedBook) return;
+    setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+    setCatalogBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+  };
+
+  const handleSubmitDetailReview = async (e) => {
+    e.preventDefault();
+    if (!inspectedBook) return;
+    if (!currentUser) {
+      setIsGatekeeperOpen(true);
+      showToast('Perlu Masuk Akun', 'Silakan masuk terlebih dahulu untuk mengirim ulasan dan rating.', 'gold');
+      return;
+    }
+
+    const cleanComment = detailReviewComment.trim();
+    if (!cleanComment) {
+      showToast('Ulasan Kosong', 'Tuliskan komentar atau kesan singkat tentang buku ini.', 'purple');
+      return;
+    }
+
+    setIsSubmittingDetailReview(true);
+    try {
+      const res = await api.addReview({
+        bookId: inspectedBook.id,
+        rating: detailReviewRating,
+        comment: cleanComment
+      });
+      if (res?.book) {
+        syncUpdatedBookInState(res.book);
+      }
+      setDetailReviewComment('');
+      setDetailReviewRating(5);
+      showToast(
+        'Ulasan & Rating Tersimpan!',
+        `Rating rata-rata buku "${inspectedBook.title}" kini diperbarui menjadi ${
+          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : '0.0 ★'
+        }.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Mengirim Ulasan', err?.message || 'Coba lagi beberapa saat.', 'purple');
+    } finally {
+      setIsSubmittingDetailReview(false);
+    }
+  };
+
+  const handleAdminDeleteReview = async (review) => {
+    if (!review || currentUser?.role !== 'admin') return;
+    setIsModeratingReview(true);
+    try {
+      const res = await api.deleteReview(review.id);
+      if (res?.book) {
+        syncUpdatedBookInState(res.book);
+      }
+      setModerationConfirm(null);
+      showToast(
+        'Komentar Dihapus Permanen',
+        `Ulasan dari ${review.user} telah dihapus dari database & rata-rata rating buku dihitung ulang (${
+          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
+        }).`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Menghapus Komentar', err?.message || 'Coba lagi.', 'purple');
+    } finally {
+      setIsModeratingReview(false);
+    }
+  };
+
+  const handleAdminClearReviewRating = async (review) => {
+    if (!review || currentUser?.role !== 'admin') return;
+    setIsModeratingReview(true);
+    try {
+      const res = await api.clearReviewRating(review.id);
+      if (res?.book) {
+        syncUpdatedBookInState(res.book);
+      }
+      setModerationConfirm(null);
+      showToast(
+        'Rating Ulasan Dihapus',
+        `Rating tidak wajar dari ${review.user} telah dihapus & rata-rata rating buku dihitung ulang (${
+          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
+        }).`,
+        'gold'
+      );
+    } catch (err) {
+      showToast('Gagal Menghapus Rating', err?.message || 'Coba lagi.', 'purple');
+    } finally {
+      setIsModeratingReview(false);
+    }
+  };
+
+  const handleAdminResetBookReviews = async (book, mode = 'all') => {
+    if (!book || currentUser?.role !== 'admin') return;
+    setIsModeratingReview(true);
+    try {
+      const res = await api.resetBookReviews(book.id, mode);
+      if (res?.book) {
+        syncUpdatedBookInState(res.book);
+      }
+      setModerationConfirm(null);
+      showToast(
+        mode === 'ratings_only' ? 'Rating Buku Direset' : 'Ulasan & Rating Buku Direset',
+        mode === 'ratings_only'
+          ? `Seluruh rating pada "${book.title}" telah direset ke 0.0 (komentar teks tetap terjaga).`
+          : `Seluruh ulasan & rating pada "${book.title}" telah dibersihkan permanen dari database.`,
+        'gold'
+      );
+    } catch (err) {
+      showToast('Gagal Mereset Rating Buku', err?.message || 'Coba lagi.', 'purple');
+    } finally {
+      setIsModeratingReview(false);
     }
   };
 
@@ -1938,23 +2081,19 @@ export default function App() {
     }
   };
 
+  const isAdminFullscreen = activeTab === 'archivist';
+
   return (
     <div
       className="min-h-screen flex flex-col selection:bg-amber-500/30 selection:text-amber-200"
       style={{
-        backgroundColor: '#12100E',
-        color: '#F4E8C1',
-        fontFamily: "'Plus Jakarta Sans', sans-serif"
+        backgroundColor: 'var(--theme-bg)',
+        color: 'var(--theme-text)',
+        fontFamily: 'var(--theme-font-body)'
       }}
     >
-      {/* Styles & Animations */}
+      {/* Animations */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
-        .font-cinzel {
-          font-family: 'Cinzel', serif;
-        }
-
         @keyframes floatSlow {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-7px) rotate(1.5deg); }
@@ -1996,74 +2135,43 @@ export default function App() {
         .bubble-2 { animation: bubbleRise 2.9s infinite ease-in 0.7s; }
         .bubble-3 { animation: bubbleRise 2.1s infinite ease-in 1.2s; }
         .bubble-4 { animation: bubbleRise 2.6s infinite ease-in 0.4s; }
-
-        .parchment-card {
-          background: linear-gradient(145deg, #1E1916 0%, #171311 100%);
-          border: 1px solid rgba(212, 175, 55, 0.22);
-        }
-
-        .parchment-card:hover {
-          border-color: rgba(212, 175, 55, 0.55);
-        }
-
-        .gold-gradient-text {
-          background: linear-gradient(90deg, #F4E8C1 0%, #D4AF37 50%, #F4E8C1 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #12100E;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #2D251F;
-          border: 1px solid rgba(212, 175, 55, 0.3);
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #D4AF37;
-        }
       `}</style>
 
       {/* ==========================================
-          TOP ROLE SWITCHER BAR (STEP 1)
+          TOP ROLE SWITCHER BAR & HEADER (NON-ADMIN SHELL)
       ========================================== */}
-      <RoleSwitcherBar
-        currentUser={currentUser}
-        onSwitchRole={handleSwitchRole}
-        onOpenGatekeeperModal={() => setIsGatekeeperOpen(true)}
-        onLogout={handleLogout}
-        isSwitching={isSyncingDatabase}
-      />
+      {!isAdminFullscreen && (
+        <>
+          <RoleSwitcherBar
+            currentUser={currentUser}
+            onSwitchRole={handleSwitchRole}
+            onOpenGatekeeperModal={() => setIsGatekeeperOpen(true)}
+            onLogout={handleLogout}
+            isSwitching={isSyncingDatabase}
+          />
 
-      {/* ==========================================
-          STICKY TOP NAVIGATION BAR
-      ========================================== */}
-      <header
-        className="sticky top-0 z-40 backdrop-blur-md border-b"
-        style={{
-          backgroundColor: 'rgba(18, 16, 14, 0.94)',
-          borderColor: 'rgba(212, 175, 55, 0.25)'
-        }}
-      >
+          {/* ==========================================
+              STICKY TOP NAVIGATION BAR
+          ========================================== */}
+          <header
+            className="sticky top-0 z-40 backdrop-blur-md border-b"
+            style={{
+              backgroundColor: 'var(--theme-bg-header)',
+              borderColor: 'var(--theme-border)'
+            }}
+          >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between py-3 gap-3">
             {/* Brand Logo & Subtitle */}
             <button
-              onClick={() => setActiveTab('hall')}
+              onClick={() => setActiveTab(currentUser?.role === 'admin' ? 'archivist' : 'hall')}
               className="flex items-center gap-3 text-left group focus:outline-none"
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-105 shadow-md"
                 style={{
-                  background:
-                    'radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.3), rgba(16, 185, 129, 0.15))',
-                  borderColor: '#D4AF37'
+                  background: 'var(--theme-brand-icon-bg)',
+                  borderColor: 'var(--theme-border-strong)'
                 }}
               >
                 <FlaskConical className="w-6 h-6 text-[#D4AF37]" />
@@ -2155,8 +2263,10 @@ export default function App() {
               })}
             </nav>
 
-            {/* Current Active User Profile Pill */}
+            {/* Theme Toggle + Current Active User Profile Pill */}
             <div className="order-3 lg:order-4 flex items-center gap-2">
+              <ThemeToggle compact />
+
               {currentUser ? (
                 <button
                   onClick={() => {
@@ -2166,8 +2276,8 @@ export default function App() {
                   }}
                   className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all hover:border-[#D4AF37]"
                   style={{
-                    backgroundColor: '#1E1916',
-                    borderColor: 'rgba(212, 175, 55, 0.35)'
+                    backgroundColor: 'var(--theme-surface)',
+                    borderColor: 'var(--theme-border-strong)'
                   }}
                   title="Buka Ruang Profil Role Ini"
                 >
@@ -2221,6 +2331,8 @@ export default function App() {
           </div>
         </div>
       </header>
+        </>
+      )}
 
       {/* ==========================================
           MAGICAL SCROLL TOAST NOTIFICATION
@@ -2230,14 +2342,14 @@ export default function App() {
           <div
             className="p-4 rounded-xl shadow-2xl border flex items-start gap-3"
             style={{
-              backgroundColor: '#1E1916',
+              backgroundColor: 'var(--theme-surface)',
               borderColor:
                 toast.type === 'emerald'
                   ? '#10B981'
                   : toast.type === 'purple'
                   ? '#8B5CF6'
-                  : '#D4AF37',
-              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.8)'
+                  : 'var(--theme-accent)',
+              boxShadow: 'var(--theme-shadow-modal)'
             }}
           >
             <div
@@ -2284,7 +2396,56 @@ export default function App() {
       {/* ==========================================
           MAIN VIEWS ROUTING CONTAINER
       ========================================== */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {isAdminFullscreen ? (
+        <ArchivistsChamberView
+          currentUser={currentUser}
+          books={books}
+          loans={loans}
+          members={members}
+          onRegisterMember={handleRegisterMember}
+          onImportBulkMembers={handleImportBulkMembers}
+          allPendingLoans={allPendingLoans}
+          allApprovedLoans={allApprovedLoans}
+          onApproveLoan={handleApproveLoan}
+          onRejectLoan={handleRejectLoan}
+          onVerifyReturnLoan={handleVerifyReturnLoan}
+          onAdjustStock={handleAdjustStock}
+          onSubmitQuickLoan={handleSubmitQuickLoan}
+          isSubmittingQuickLoan={isSubmittingQuickLoan}
+          newBookForm={newBookForm}
+          setNewBookForm={setNewBookForm}
+          onAddNewBook={handleAddNewBook}
+          onImportBulkBooks={handleImportBulkBooks}
+          isImporting={isImportingBooks}
+          isDatabaseConnected={isDatabaseConnected}
+          isSyncingDatabase={isSyncingDatabase}
+          onRefreshDatabase={() => syncDatabaseData(currentUser, true)}
+          onOpenReader={(b) => setReadingBook(b)}
+          onOpenPdfViewer={(book) => setPdfViewerBook(book)}
+          onInspectBook={(id) => {
+            setModerationConfirm(null);
+            setInspectedBookId(id);
+          }}
+          onOpenCatalog={() => {
+            setActiveTab('vault');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          packageLoanForm={packageLoanForm}
+          setPackageLoanForm={setPackageLoanForm}
+          onSubmitPackageLoan={handleSubmitPackageLoan}
+          onCompletePackageLoan={handleCompletePackageLoan}
+          onSwitchRole={handleSwitchRole}
+          onOpenGatekeeperModal={() => setIsGatekeeperOpen(true)}
+          onLogout={handleLogout}
+          onDeleteReview={handleAdminDeleteReview}
+          onClearReviewRating={handleAdminClearReviewRating}
+          onResetBookReviews={handleAdminResetBookReviews}
+          isModeratingReview={isModeratingReview}
+          ingredientsList={INGREDIENTS}
+          schoolsList={SCHOOLS_OF_LORE}
+        />
+      ) : (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ==========================================
             VIEW 1: THE GREAT HALL (BERANDA)
         ========================================== */}
@@ -2294,9 +2455,8 @@ export default function App() {
             <section
               className="relative rounded-2xl overflow-hidden border p-6 sm:p-10 lg:p-12"
               style={{
-                background:
-                  'radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.18), rgba(16, 185, 129, 0.10) 40%, #1E1916 85%)',
-                borderColor: 'rgba(212, 175, 55, 0.35)'
+                background: 'var(--theme-hero-bg)',
+                borderColor: 'var(--theme-hero-border)'
               }}
             >
               <div className="pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full border border-[#D4AF37]/15 flex items-center justify-center animate-rune-spin">
@@ -2486,6 +2646,7 @@ export default function App() {
                   .slice(0, 6)
                   .map((book) => {
                     const isAvailable = book.availableStock > 0;
+                    const visual = getBookCoverVisual(book);
                     return (
                       <div
                         key={book.id}
@@ -2495,18 +2656,27 @@ export default function App() {
                           <div className="flex gap-4">
                             <div
                               onClick={() => setInspectedBookId(book.id)}
-                              className={`w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 relative overflow-hidden group shadow-md`}
+                              className={`book-cover-art w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient || visual.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 relative overflow-hidden group shadow-md`}
+                              style={{ background: book.coverGradientStyle || visual.gradient }}
                             >
-                              <div className="flex justify-between items-center text-[10px] text-[#D4AF37]/80 font-cinzel">
+                              {book.coverUrl ? (
+                                <img
+                                  src={book.coverUrl}
+                                  alt={book.title}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              ) : null}
+                              <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37]/90 font-cinzel relative z-10 pl-0.5">
                                 <span>✦</span>
-                                <span>{book.rating}★</span>
+                                <span>{book.rating ? `${Number(book.rating).toFixed(1)}★` : 'Baru'}</span>
                               </div>
-                              <div className="text-center my-auto">
-                                <span className="text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
-                                  {book.coverRune}
+                              <div className="text-center my-auto relative z-10">
+                                <span className="book-cover-rune text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
+                                  {book.coverRune || visual.rune}
                                 </span>
                               </div>
-                              <div className="text-[9px] font-cinzel text-center text-[#F4E8C1]/90 line-clamp-2 border-t border-[#D4AF37]/30 pt-1">
+                              <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1]/90 line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
                                 {book.title}
                               </div>
                             </div>
@@ -2926,6 +3096,33 @@ export default function App() {
         ========================================== */}
         {activeTab === 'vault' && (
           <div className="space-y-6">
+            {/* BUTTON BAR KECIL KHUSUS ADMIN: KEMBALI KE DASHBOARD ADMIN */}
+            {currentUser?.role === 'admin' && (
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#1A1512] border border-amber-500/45 shadow-md">
+                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-cinzel font-bold text-[11px]">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Mode Admin di Katalog
+                  </span>
+                  <span className="text-[#A89F91]">
+                    Anda dapat membaca buku digital (PDF) serta memoderasi komentar &amp; rating pembaca pada Detail Buku.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('archivist');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#12100E] hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_0_16px_rgba(212,175,55,0.28)] cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Kembali ke Dashboard Admin</span>
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <span className="text-xs font-cinzel tracking-widest text-[#D4AF37] uppercase">
@@ -3276,6 +3473,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredBooks.map((book) => {
                   const isAvailable = book.availableStock > 0;
+                  const visual = getBookCoverVisual(book);
                   return (
                     <div
                       key={book.id}
@@ -3285,18 +3483,31 @@ export default function App() {
                         <div className="flex gap-4">
                           <div
                             onClick={() => setInspectedBookId(book.id)}
-                            className={`w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 group`}
+                            className={`book-cover-art w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient || visual.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 relative overflow-hidden group shadow-md`}
+                            style={{ background: book.coverGradientStyle || visual.gradient }}
                           >
-                            <div className="flex justify-between items-center text-[10px] text-[#D4AF37]">
+                            {book.coverUrl ? (
+                              <img
+                                src={book.coverUrl}
+                                alt={book.title}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : null}
+                            <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37] relative z-10 pl-0.5">
                               <span>{book.jenjang || 'Umum'}</span>
-                              <span>{book.rating}★</span>
-                            </div>
-                            <div className="text-center my-auto">
-                              <span className="text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
-                                {book.coverRune}
+                              <span>
+                                {Number(book.rating) > 0
+                                  ? `${Number(book.rating).toFixed(1)}★`
+                                  : 'Baru'}
                               </span>
                             </div>
-                            <div className="text-[9px] font-cinzel text-center text-[#F4E8C1] line-clamp-2 border-t border-[#D4AF37]/30 pt-1">
+                            <div className="text-center my-auto relative z-10">
+                              <span className="book-cover-rune text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
+                                {book.coverRune || visual.rune}
+                              </span>
+                            </div>
+                            <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1] line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
                               {book.title}
                             </div>
                           </div>
@@ -3373,20 +3584,32 @@ export default function App() {
 
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => setInspectedBookId(book.id)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs border border-[#D4AF37]/40 text-[#F4E8C1] hover:bg-[#D4AF37]/15"
+                            onClick={() => {
+                              setModerationConfirm(null);
+                              setInspectedBookId(book.id);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1 ${
+                              currentUser?.role === 'admin'
+                                ? 'border border-amber-500/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 font-cinzel font-bold'
+                                : 'border border-[#D4AF37]/40 text-[#F4E8C1] hover:bg-[#D4AF37]/15'
+                            }`}
                           >
-                            Detail
+                            {currentUser?.role === 'admin' ? (
+                              <>
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                                <span>
+                                  Detail &amp; Moderasi
+                                  {(book.reviews || []).length > 0
+                                    ? ` (${book.reviews.length})`
+                                    : ''}
+                                </span>
+                              </>
+                            ) : (
+                              <span>Detail</span>
+                            )}
                           </button>
 
-                          {currentUser?.role === 'admin' ? (
-                            <button
-                              onClick={() => setActiveTab('archivist')}
-                              className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
-                            >
-                              Kelola
-                            </button>
-                          ) : currentUser?.role === 'guru' ? (
+                          {currentUser?.role === 'admin' ? null : currentUser?.role === 'guru' ? (
                             <button
                               onClick={() => {
                                 setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
@@ -3465,42 +3688,8 @@ export default function App() {
             onInspectBook={(id) => setInspectedBookId(id)}
           />
         )}
-
-        {/* ==========================================
-            VIEW 6: ARCHIVIST'S CHAMBER (ROLE ADMIN)
-        ========================================== */}
-        {activeTab === 'archivist' && (
-          <ArchivistsChamberView
-            currentUser={currentUser}
-            books={books}
-            loans={loans}
-            members={members}
-            onRegisterMember={handleRegisterMember}
-            onImportBulkMembers={handleImportBulkMembers}
-            allPendingLoans={allPendingLoans}
-            allApprovedLoans={allApprovedLoans}
-            onApproveLoan={handleApproveLoan}
-            onRejectLoan={handleRejectLoan}
-            onVerifyReturnLoan={handleVerifyReturnLoan}
-            onAdjustStock={handleAdjustStock}
-            onSubmitQuickLoan={handleSubmitQuickLoan}
-            isSubmittingQuickLoan={isSubmittingQuickLoan}
-            newBookForm={newBookForm}
-            setNewBookForm={setNewBookForm}
-            onAddNewBook={handleAddNewBook}
-            onImportBulkBooks={handleImportBulkBooks}
-            isImporting={isImportingBooks}
-            isDatabaseConnected={isDatabaseConnected}
-            isSyncingDatabase={isSyncingDatabase}
-            onRefreshDatabase={() => syncDatabaseData(currentUser, true)}
-            onOpenReader={(b) => setReadingBook(b)}
-            onOpenPdfViewer={(book) => setPdfViewerBook(book)}
-            onInspectBook={(id) => setInspectedBookId(id)}
-            ingredientsList={INGREDIENTS}
-            schoolsList={SCHOOLS_OF_LORE}
-          />
-        )}
-      </main>
+        </main>
+      )}
 
       {/* ==========================================
           MODAL 0: GLS READING LOG JOURNAL FORM
@@ -3525,13 +3714,16 @@ export default function App() {
           <div
             className="max-w-2xl w-full rounded-2xl border p-6 sm:p-8 relative my-8 max-h-[90vh] overflow-y-auto"
             style={{
-              backgroundColor: '#1E1916',
-              borderColor: '#D4AF37',
-              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.95)'
+              backgroundColor: 'var(--theme-surface)',
+              borderColor: 'var(--theme-border-strong)',
+              boxShadow: 'var(--theme-shadow-modal)'
             }}
           >
             <button
-              onClick={() => setInspectedBookId(null)}
+              onClick={() => {
+                setModerationConfirm(null);
+                setInspectedBookId(null);
+              }}
               className="absolute top-5 right-5 w-9 h-9 rounded-full bg-black/40 border border-[#D4AF37]/40 flex items-center justify-center text-[#F4E8C1] hover:bg-[#D4AF37] hover:text-[#12100E] transition-colors"
             >
               <X className="w-5 h-5" />
@@ -3539,22 +3731,40 @@ export default function App() {
 
             <div className="flex flex-col sm:flex-row gap-6">
               {/* Large Cover Preview */}
-              <div
-                className={`w-36 h-52 mx-auto sm:mx-0 rounded-2xl bg-gradient-to-br ${inspectedBook.coverGradient} border-2 border-[#D4AF37] p-4 flex flex-col justify-between shrink-0 shadow-2xl`}
-              >
-                <div className="flex justify-between text-xs text-[#D4AF37] font-cinzel">
-                  <span>✦</span>
-                  <span>{inspectedBook.rating} ★</span>
-                </div>
-                <div className="text-center my-auto">
-                  <span className="text-5xl text-[#D4AF37]">
-                    {inspectedBook.coverRune}
-                  </span>
-                </div>
-                <div className="text-[11px] font-cinzel text-center text-[#F4E8C1] border-t border-[#D4AF37]/40 pt-1.5">
-                  {inspectedBook.title}
-                </div>
-              </div>
+              {(() => {
+                const visual = getBookCoverVisual(inspectedBook);
+                return (
+                  <div
+                    className={`book-cover-art w-36 h-52 mx-auto sm:mx-0 rounded-2xl bg-gradient-to-br ${inspectedBook.coverGradient || visual.coverGradient} border-2 border-[#D4AF37] p-4 flex flex-col justify-between shrink-0 shadow-2xl relative overflow-hidden`}
+                    style={{ background: inspectedBook.coverGradientStyle || visual.gradient }}
+                  >
+                    {inspectedBook.coverUrl ? (
+                      <img
+                        src={inspectedBook.coverUrl}
+                        alt={inspectedBook.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : null}
+                    <div className="book-cover-header flex justify-between text-xs text-[#D4AF37] font-cinzel relative z-10 pl-1">
+                      <span>✦</span>
+                      <span>
+                        {Number(inspectedBook.rating) > 0
+                          ? `${Number(inspectedBook.rating).toFixed(1)} ★`
+                          : 'Baru'}
+                      </span>
+                    </div>
+                    <div className="text-center my-auto relative z-10">
+                      <span className="book-cover-rune text-5xl text-[#D4AF37]">
+                        {inspectedBook.coverRune || visual.rune}
+                      </span>
+                    </div>
+                    <div className="book-cover-title text-[11px] font-cinzel text-center text-[#F4E8C1] border-t border-[#D4AF37]/40 pt-1.5 relative z-10">
+                      {inspectedBook.title}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Book Metadata */}
               <div className="flex-1 space-y-3">
@@ -3625,7 +3835,7 @@ export default function App() {
                           style={{
                             backgroundColor: ing.bgGlow,
                             borderColor: ing.color,
-                            color: '#F4E8C1'
+                            color: 'var(--theme-text)'
                           }}
                         >
                           <span>{ing.symbol}</span>
@@ -3649,47 +3859,331 @@ export default function App() {
               </p>
             </div>
 
-            {/* Scholar's Notes */}
-            <div className="mt-6 space-y-3">
-              <h4 className="font-cinzel text-sm font-bold text-[#F4E8C1] flex items-center gap-2">
-                <MessageSquareQuote className="w-4 h-4 text-[#D4AF37]" />
-                <span>
-                  Scholar&apos;s Notes (Catatan Pembaca • {(inspectedBook.reviews || []).length})
-                </span>
-              </h4>
+            {/* Scholar's Notes & Admin Moderation Section */}
+            <div className="mt-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="font-cinzel text-sm font-bold text-[#F4E8C1] flex items-center gap-2">
+                  <MessageSquareQuote className="w-4 h-4 text-[#D4AF37]" />
+                  <span>
+                    Ulasan &amp; Rating Pembaca ({(inspectedBook.reviews || []).length})
+                  </span>
+                </h4>
 
-              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
-                {(inspectedBook.reviews || []).map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="p-3.5 rounded-xl bg-black/30 border border-white/10 space-y-1"
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[#D4AF37]">{rev.user}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-amber-400">{'★'.repeat(rev.rating)}</span>
-                        <span className="text-[10px] text-[#A89F91]">{rev.date}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-[#F4E8C1]/90">{rev.comment}</p>
-                  </div>
-                ))}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span>
+                      {Number(inspectedBook.rating) > 0
+                        ? `${Number(inspectedBook.rating).toFixed(1)} / 5.0`
+                        : 'Belum ada rating'}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-[#A89F91]">
+                    (
+                    {inspectedBook.ratingCount ??
+                      (inspectedBook.reviews || []).filter((r) => r.rating != null).length}{' '}
+                    rating valid)
+                  </span>
+                </div>
               </div>
+
+              {/* PANEL MODERASI KHUSUS ADMIN */}
+              {currentUser?.role === 'admin' && (
+                <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/40 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span className="font-cinzel font-bold text-rose-300 uppercase tracking-wider text-[11px]">
+                        Mode Moderasi Admin Aktif
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={isModeratingReview}
+                        onClick={() =>
+                          setModerationConfirm({
+                            type: 'reset_ratings',
+                            bookId: inspectedBook.id
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/45 hover:bg-amber-500/30 transition-all flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset Rating Buku</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={
+                          isModeratingReview ||
+                          ((inspectedBook.reviews || []).length === 0 &&
+                            Number(inspectedBook.rating) === 0)
+                        }
+                        onClick={() =>
+                          setModerationConfirm({
+                            type: 'reset_all',
+                            bookId: inspectedBook.id
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-cinzel font-bold bg-rose-500/20 text-rose-300 border border-rose-500/45 hover:bg-rose-500/30 transition-all flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus Semua Ulasan &amp; Reset</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#A89F91] leading-relaxed">
+                    Hapus komentar hate speech/spam secara permanen dari PostgreSQL atau bersihkan rating tidak wajar. Nilai rata-rata rating buku otomatis dihitung ulang.
+                  </p>
+
+                  {/* Inline Confirm Bar untuk Reset Rating / Reset Semua Ulasan */}
+                  {(moderationConfirm?.type === 'reset_ratings' ||
+                    moderationConfirm?.type === 'reset_all') &&
+                    moderationConfirm?.bookId === inspectedBook.id && (
+                      <div className="p-2.5 rounded-lg bg-black/50 border border-rose-500/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-rose-200">
+                          {moderationConfirm.type === 'reset_ratings'
+                            ? 'Konfirmasi: Reset seluruh angka rating buku ini menjadi 0.0 (komentar teks tetap disimpan)?'
+                            : 'Konfirmasi: Hapus permanen SELURUH komentar & reset rating buku ini ke 0.0?'}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={isModeratingReview}
+                            onClick={() => setModerationConfirm(null)}
+                            className="px-2.5 py-1 rounded-md text-[11px] bg-white/10 text-[#F4E8C1] hover:bg-white/20"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isModeratingReview}
+                            onClick={() =>
+                              handleAdminResetBookReviews(
+                                inspectedBook,
+                                moderationConfirm.type === 'reset_ratings'
+                                  ? 'ratings_only'
+                                  : 'all'
+                              )
+                            }
+                            className="px-3 py-1 rounded-md text-[11px] font-bold bg-rose-500 text-white hover:bg-rose-400 disabled:opacity-50"
+                          >
+                            {isModeratingReview ? 'Memproses...' : 'Ya, Jalankan'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* Daftar Komentar & Ulasan */}
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {(inspectedBook.reviews || []).length === 0 ? (
+                  <div className="p-4 rounded-xl bg-black/25 border border-white/10 text-center text-xs text-[#A89F91]">
+                    Belum ada ulasan atau komentar pembaca untuk buku ini.
+                  </div>
+                ) : (
+                  (inspectedBook.reviews || []).map((rev) => {
+                    const isLowRating = rev.rating !== null && Number(rev.rating) <= 2;
+                    const isConfirmingThisDelete =
+                      moderationConfirm?.type === 'delete_comment' &&
+                      moderationConfirm?.id === rev.id;
+                    const isConfirmingThisClear =
+                      moderationConfirm?.type === 'clear_rating' &&
+                      moderationConfirm?.id === rev.id;
+
+                    return (
+                      <div
+                        key={rev.id}
+                        className={`p-3.5 rounded-xl border space-y-2 ${
+                          currentUser?.role === 'admin' && isLowRating
+                            ? 'bg-rose-950/20 border-rose-500/35'
+                            : 'bg-black/30 border-white/10'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-[#D4AF37]">{rev.user}</span>
+                            {rev.username && (
+                              <span className="text-[10px] font-mono text-[#A89F91]">
+                                @{rev.username}
+                              </span>
+                            )}
+                            {currentUser?.role === 'admin' && isLowRating && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold">
+                                Rating Rendah ({rev.rating}★)
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {rev.rating !== null && rev.rating !== undefined ? (
+                              <span className="text-amber-400">
+                                {'★'.repeat(Math.max(1, Math.min(5, Number(rev.rating))))}
+                                <span className="text-white/20">
+                                  {'★'.repeat(Math.max(0, 5 - Number(rev.rating)))}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] italic px-2 py-0.5 rounded bg-white/5 text-[#A89F91] border border-white/10">
+                                Rating dihapus Admin
+                              </span>
+                            )}
+                            <span className="text-[10px] text-[#A89F91]">{rev.date}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-[#F4E8C1]/90 leading-relaxed">{rev.comment}</p>
+
+                        {/* KONTROL MODERASI PER KOMENTAR (KHUSUS ADMIN) */}
+                        {currentUser?.role === 'admin' && (
+                          <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                            {isConfirmingThisDelete || isConfirmingThisClear ? (
+                              <div className="w-full flex flex-wrap items-center justify-between gap-2 bg-rose-950/50 border border-rose-500/50 rounded-lg px-2.5 py-1.5 text-[11px]">
+                                <span className="text-rose-200">
+                                  {isConfirmingThisDelete
+                                    ? 'Hapus komentar ini secara permanen dari database?'
+                                    : 'Hapus rating pada ulasan ini & hitung ulang rata-rata?'}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={isModeratingReview}
+                                    onClick={() => setModerationConfirm(null)}
+                                    className="px-2 py-0.5 rounded bg-white/10 text-[#F4E8C1] hover:bg-white/20"
+                                  >
+                                    Batal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isModeratingReview}
+                                    onClick={() =>
+                                      isConfirmingThisDelete
+                                        ? handleAdminDeleteReview(rev)
+                                        : handleAdminClearReviewRating(rev)
+                                    }
+                                    className="px-2.5 py-0.5 rounded bg-rose-500 text-white font-bold hover:bg-rose-400 disabled:opacity-50"
+                                  >
+                                    {isModeratingReview ? 'Memproses...' : 'Ya, Konfirmasi'}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-[10px] text-[#A89F91]">
+                                  Kontrol Moderasi Admin:
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {rev.rating !== null && rev.rating !== undefined && (
+                                    <button
+                                      type="button"
+                                      disabled={isModeratingReview}
+                                      onClick={() =>
+                                        setModerationConfirm({
+                                          type: 'clear_rating',
+                                          id: rev.id
+                                        })
+                                      }
+                                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/35 hover:bg-amber-500/25 transition-all flex items-center gap-1"
+                                    >
+                                      <RotateCcw className="w-3 h-3" />
+                                      <span>Hapus Rating</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={isModeratingReview}
+                                    onClick={() =>
+                                      setModerationConfirm({
+                                        type: 'delete_comment',
+                                        id: rev.id
+                                      })
+                                    }
+                                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/45 hover:bg-rose-500/30 transition-all flex items-center gap-1"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Hapus Komentar</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Form Tulis Ulasan & Rating Langsung di Detail Buku */}
+              {currentUser && (
+                <form
+                  onSubmit={handleSubmitDetailReview}
+                  className="p-3.5 rounded-xl bg-[#12100E] border border-[#D4AF37]/25 space-y-2.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-cinzel font-bold text-[#D4AF37]">
+                      TULIS ULASAN &amp; RATING BUKU:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setDetailReviewRating(num)}
+                          className={`px-2 py-0.5 rounded-md border text-[11px] font-bold flex items-center gap-0.5 transition-all ${
+                            detailReviewRating >= num
+                              ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
+                              : 'bg-black/30 border-white/10 text-[#A89F91]'
+                          }`}
+                        >
+                          <Star
+                            className={`w-3 h-3 ${
+                              detailReviewRating >= num ? 'fill-[#D4AF37]' : ''
+                            }`}
+                          />
+                          <span>{num}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={detailReviewComment}
+                      onChange={(e) => setDetailReviewComment(e.target.value)}
+                      placeholder="Bagikan ulasan singkat atau catatan penting untuk pembaca lain..."
+                      className="flex-1 px-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmittingDetailReview}
+                      className="px-4 py-2 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-all disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {isSubmittingDetailReview ? 'Mengirim...' : 'Kirim Ulasan'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* Modal Footer */}
             <div className="mt-6 pt-4 border-t border-[#D4AF37]/25 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-[#A89F91] flex items-center gap-1">
                 <Hash className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span>ISBN: {inspectedBook.isbn}</span>
+                <span>ISBN: {inspectedBook.isbn || '-'}</span>
               </span>
 
               <div className="flex flex-wrap items-center gap-2">
-                {inspectedBook.pdfUrl && (
+                {inspectedBook.pdfUrl ? (
                   <button
                     type="button"
                     onClick={() => {
                       setPdfViewerBook(inspectedBook);
+                      setModerationConfirm(null);
                       setInspectedBookId(null);
                     }}
                     className="px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5"
@@ -3697,6 +4191,10 @@ export default function App() {
                     <BookOpen className="w-4 h-4" />
                     <span>Baca Buku (PDF)</span>
                   </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl text-[11px] bg-white/5 text-[#A89F91] border border-white/10">
+                    Hanya Tersedia Versi Fisik (Tanpa PDF)
+                  </span>
                 )}
 
                 {/* E-Grimoire Reader Button inside modal */}
@@ -3704,6 +4202,7 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setReadingBook(inspectedBook);
+                    setModerationConfirm(null);
                     setInspectedBookId(null);
                   }}
                   className="px-4 py-2.5 rounded-xl font-cinzel font-semibold text-xs bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1.5"
@@ -3716,11 +4215,13 @@ export default function App() {
                   <button
                     onClick={() => {
                       setActiveTab('archivist');
+                      setModerationConfirm(null);
                       setInspectedBookId(null);
                     }}
-                    className="px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                    className="px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1.5"
                   >
-                    Kelola di Archivist
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Kembali ke Dashboard Admin</span>
                   </button>
                 ) : currentUser?.role === 'guru' ? (
                   <>
@@ -3792,8 +4293,9 @@ export default function App() {
             onSubmit={handleSubmitReturnAndReview}
             className="max-w-lg w-full rounded-2xl border p-6 sm:p-8 space-y-5 relative"
             style={{
-              backgroundColor: '#1E1916',
-              borderColor: '#10B981'
+              backgroundColor: 'var(--theme-surface)',
+              borderColor: 'var(--theme-emerald)',
+              boxShadow: 'var(--theme-shadow-modal)'
             }}
           >
             <button
@@ -3932,24 +4434,26 @@ export default function App() {
       />
 
       {/* ==========================================
-          FOOTER
+          FOOTER (NON-ADMIN SHELL)
       ========================================== */}
-      <footer
-        className="mt-16 border-t py-6 text-center text-xs text-[#A89F91]"
-        style={{
-          backgroundColor: '#0E0C0A',
-          borderColor: 'rgba(212, 175, 55, 0.2)'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="font-cinzel text-[#D4AF37]">
-            ✦ The Grand Alchemist&apos;s Archive • Pustaka Agung Alkemis ✦
-          </p>
-          <p>
-            Platform Perpustakaan Sekolah Tema Alkimia &amp; Fantasi Abad Pertengahan • Sistem 3 Role
-          </p>
-        </div>
-      </footer>
+      {!isAdminFullscreen && (
+        <footer
+          className="mt-16 border-t py-6 text-center text-xs text-[#A89F91]"
+          style={{
+            backgroundColor: 'var(--theme-bg-footer)',
+            borderColor: 'var(--theme-border)'
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="font-cinzel text-[#D4AF37]">
+              ✦ The Grand Alchemist&apos;s Archive • Pustaka Agung Alkemis ✦
+            </p>
+            <p>
+              Platform Perpustakaan Sekolah Tema Alkimia &amp; Fantasi Abad Pertengahan • Sistem 3 Role
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

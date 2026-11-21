@@ -66,7 +66,7 @@ model Book {
   isbn         String?
   pages        Int      @default(120)
   xp_reward    Int      @default(50)
-  rating       Float    @default(4.8)
+  rating       Float    @default(0)
   synopsis     String?
   chapters     Json?
   createdAt    DateTime @default(now())
@@ -157,7 +157,7 @@ model Review {
   userId        String?
   bookId        String
   reviewer_name String
-  rating        Int      @default(5)
+  rating        Int?     @default(5)
   comment       String
   createdAt     DateTime @default(now())
 
@@ -165,4 +165,5 @@ model Review {
   book Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+  @@index([userId])
 }

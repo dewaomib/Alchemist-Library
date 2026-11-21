@@ -914,7 +914,7 @@ export default function ExcelImportSection({
                           Ada PDF
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-stone-800/70 text-[#A89F91] border border-[#D4AF37]/20">
                           Hanya Fisik
                         </span>
                       )}

@@ -81,9 +81,9 @@ export default function ReadingLogModal({
         onSubmit={handleSubmit}
         className="max-w-2xl w-full rounded-2xl border p-6 sm:p-8 space-y-5 relative my-8 max-h-[92vh] overflow-y-auto"
         style={{
-          backgroundColor: '#1E1916',
-          borderColor: '#10B981',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.95)'
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-emerald)',
+          boxShadow: 'var(--theme-shadow-modal)'
         }}
       >
         <button

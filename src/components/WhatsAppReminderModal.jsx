@@ -98,11 +98,18 @@ export default function WhatsAppReminderModal({
     >
       <div
         className="w-full max-w-2xl rounded-2xl border shadow-2xl my-4 overflow-hidden"
-        style={{ backgroundColor: '#1E1916', borderColor: '#25D366' }}
+        style={{
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: '#25D366',
+          boxShadow: 'var(--theme-shadow-modal)'
+        }}
       >
         <header
           className="px-4 sm:px-6 py-4 border-b flex items-start justify-between gap-3"
-          style={{ borderColor: '#25D36640', backgroundColor: '#171311' }}
+          style={{
+            borderColor: 'var(--theme-border)',
+            backgroundColor: 'var(--theme-surface-alt)'
+          }}
         >
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-[#25D366]/15 border border-[#25D366]/45 text-[#25D366] flex items-center justify-center shrink-0">

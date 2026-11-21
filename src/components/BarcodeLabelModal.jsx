@@ -303,11 +303,18 @@ export default function BarcodeLabelModal({
     >
       <div
         className="w-full max-w-5xl rounded-2xl border shadow-2xl my-4 overflow-hidden"
-        style={{ backgroundColor: '#1E1916', borderColor: '#D4AF37' }}
+        style={{
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-border-strong)',
+          boxShadow: 'var(--theme-shadow-modal)'
+        }}
       >
         <header
           className="px-4 sm:px-6 py-4 border-b flex items-start justify-between gap-3"
-          style={{ borderColor: '#D4AF3735', backgroundColor: '#171311' }}
+          style={{
+            borderColor: 'var(--theme-border)',
+            backgroundColor: 'var(--theme-surface-alt)'
+          }}
         >
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/45 text-[#D4AF37] flex items-center justify-center shrink-0">

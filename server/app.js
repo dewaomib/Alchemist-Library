@@ -35,34 +35,77 @@ const VISUAL_BY_CATEGORY = {
   'Bards Tales': {
     coverRune: '☽',
     coverGradient: 'from-indigo-950 via-purple-900 to-slate-900',
+    coverGradientStyle: 'linear-gradient(135deg, #1e1145 0%, #3b1d70 50%, #0f172a 100%)',
     accentColor: '#8B5CF6',
     ingredients: ['wind', 'shadow', 'ember']
   },
   Alchemy: {
     coverRune: '☉',
     coverGradient: 'from-emerald-950 via-teal-950 to-zinc-950',
+    coverGradientStyle: 'linear-gradient(135deg, #062e22 0%, #064e3b 50%, #091a13 100%)',
     accentColor: '#10B981',
     ingredients: ['spark', 'craft']
   },
   'Artificers Craft': {
     coverRune: '✧',
     coverGradient: 'from-cyan-950 via-blue-950 to-neutral-950',
+    coverGradientStyle: 'linear-gradient(135deg, #082f49 0%, #0369a1 50%, #091728 100%)',
     accentColor: '#06B6D4',
     ingredients: ['craft', 'spark']
   },
   'Ancient Lore': {
     coverRune: '🜃',
     coverGradient: 'from-yellow-950 via-amber-900 to-neutral-950',
+    coverGradientStyle: 'linear-gradient(135deg, #451a03 0%, #78350f 50%, #1c1917 100%)',
     accentColor: '#D4AF37',
     ingredients: ['wisdom', 'ember']
   },
   Philosophy: {
     coverRune: '🜂',
     coverGradient: 'from-amber-950 via-stone-900 to-neutral-950',
+    coverGradientStyle: 'linear-gradient(135deg, #2e1e12 0%, #573318 50%, #171311 100%)',
     accentColor: '#D4AF37',
     ingredients: ['wisdom', 'craft']
   }
 };
+
+const BOOK_INCLUDE = {
+  reviews: {
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          kelas_label: true
+        }
+      }
+    }
+  },
+  _count: { select: { loans: true } }
+};
+
+async function recalculateBookRating(db, bookId) {
+  const agg = await db.review.aggregate({
+    where: {
+      bookId,
+      rating: { not: null }
+    },
+    _avg: { rating: true },
+    _count: { rating: true }
+  });
+
+  const ratedCount = Number(agg._count?.rating || 0);
+  const nextRating =
+    ratedCount > 0 ? Number((Number(agg._avg?.rating) || 0).toFixed(1)) : 0;
+
+  return db.book.update({
+    where: { id: bookId },
+    data: { rating: nextRating },
+    include: BOOK_INCLUDE
+  });
+}
 
 function serializeBook(book, index = 0) {
   const category = book.category || 'Literasi & Umum';
@@ -82,6 +125,22 @@ function serializeBook(book, index = 0) {
         });
   const totalStock = Math.max(Number(book.total_stok || 0), Number(book.stok_fisik || 0));
   const stokFisik = Math.max(0, Number(book.stok_fisik || 0));
+
+  const rawReviews = Array.isArray(book.reviews) ? book.reviews : [];
+  const ratedReviews = rawReviews.filter(
+    (r) => r.rating !== null && r.rating !== undefined && Number(r.rating) >= 1
+  );
+  const computedRating =
+    ratedReviews.length > 0
+      ? Number(
+          (
+            ratedReviews.reduce((sum, r) => sum + Number(r.rating), 0) /
+            ratedReviews.length
+          ).toFixed(1)
+        )
+      : book.rating !== null && book.rating !== undefined && Number.isFinite(Number(book.rating))
+        ? Number(Number(book.rating).toFixed(1))
+        : 0;
 
   return enrichBook(
     {
@@ -104,7 +163,8 @@ function serializeBook(book, index = 0) {
       jenis_buku: book.jenis_buku || 'Umum',
       category,
       categoryLabel: `${category} (${book.jenis_buku || 'Pustaka Sekolah'})`,
-      rating: Number(book.rating) || 4.8,
+      rating: computedRating,
+      ratingCount: ratedReviews.length,
       xpReward: Number(book.xp_reward) || 120,
       pages: Number(book.pages) || 240,
       isbn: book.isbn || '',
@@ -127,15 +187,20 @@ function serializeBook(book, index = 0) {
       digitalContent,
       coverRune: visual.coverRune,
       coverGradient: visual.coverGradient,
+      coverGradientStyle: visual.coverGradientStyle,
       accentColor: visual.accentColor,
       ingredients: visual.ingredients,
       popular: (book._count?.loans || 0) > 1 || totalStock - stokFisik > 0,
       loanCount: book._count?.loans || 0,
-      reviews: (book.reviews || []).map((r) => ({
+      reviews: rawReviews.map((r) => ({
         id: r.id,
+        userId: r.userId || null,
         user: r.reviewer_name,
-        rating: Number(r.rating) || 5,
+        username: r.user?.username || null,
+        role: r.user?.role ? String(r.user.role).toLowerCase() : null,
+        rating: r.rating !== null && r.rating !== undefined ? Number(r.rating) : null,
         comment: r.comment,
+        createdAt: r.createdAt,
         date: new Date(r.createdAt).toLocaleDateString('id-ID', {
           day: 'numeric',
           month: 'short',
@@ -453,10 +518,7 @@ function buildApiRouter() {
 
     const dbBooks = await prisma.book.findMany({
       where,
-      include: {
-        reviews: { orderBy: { createdAt: 'desc' } },
-        _count: { select: { loans: true } }
-      },
+      include: BOOK_INCLUDE,
       orderBy: [{ createdAt: 'asc' }]
     });
 
@@ -522,7 +584,7 @@ function buildApiRouter() {
         synopsis: body.synopsis || null,
         chapters: Array.isArray(body.digitalContent) ? body.digitalContent : null
       },
-      include: { reviews: true, _count: { select: { loans: true } } }
+      include: BOOK_INCLUDE
     });
 
     return res.status(201).json({ book: serializeBook(created) });
@@ -608,7 +670,7 @@ function buildApiRouter() {
     }
 
     const allBooks = await prisma.book.findMany({
-      include: { reviews: true, _count: { select: { loans: true } } },
+      include: BOOK_INCLUDE,
       orderBy: [{ createdAt: 'asc' }]
     });
 
@@ -644,7 +706,7 @@ function buildApiRouter() {
         total_stok: nextTotal,
         stok_fisik: nextAvailable
       },
-      include: { reviews: true, _count: { select: { loans: true } } }
+      include: BOOK_INCLUDE
     });
 
     res.json({ book: serializeBook(updated) });
@@ -898,7 +960,7 @@ function buildApiRouter() {
           updatedBook = await tx.book.update({
             where: { id: bookId },
             data: { stok_fisik: { decrement: quantity } },
-            include: { reviews: true, _count: { select: { loans: true } } }
+            include: BOOK_INCLUDE
           });
         }
 
@@ -927,7 +989,7 @@ function buildApiRouter() {
 
       const fullBook = await prisma.book.findUnique({
         where: { id: result.book.id },
-        include: { reviews: true, _count: { select: { loans: true } } }
+        include: BOOK_INCLUDE
       });
 
       return res.status(201).json({
@@ -1031,7 +1093,7 @@ function buildApiRouter() {
 
         const updatedBook = await tx.book.findUnique({
           where: { id: freshBook.id },
-          include: { reviews: true, _count: { select: { loans: true } } }
+          include: BOOK_INCLUDE
         });
 
         return { createdLoan, updatedBook };
@@ -1085,7 +1147,7 @@ function buildApiRouter() {
 
         const updatedBook = await tx.book.findUnique({
           where: { id: loan.bookId },
-          include: { reviews: true, _count: { select: { loans: true } } }
+          include: BOOK_INCLUDE
         });
 
         return { updatedLoan, updatedBook };
@@ -1150,7 +1212,7 @@ function buildApiRouter() {
 
         const updatedBook = await tx.book.findUnique({
           where: { id: loan.bookId },
-          include: { reviews: true, _count: { select: { loans: true } } }
+          include: BOOK_INCLUDE
         });
 
         return { updatedLoan, updatedBook };
@@ -1374,15 +1436,23 @@ function buildApiRouter() {
   });
 
   // ===========================================================================
-  // REVIEWS
+  // REVIEWS & ADMIN MODERATION (KOMENTAR & RATING)
   // ===========================================================================
   router.post('/reviews', requireAuth, async (req, res) => {
     const bookId = String(req.body?.bookId || '').trim();
-    const rating = Math.max(1, Math.min(5, Number(req.body?.rating || 5)));
+    const rawRating = Number(req.body?.rating);
+    const rating = Number.isFinite(rawRating)
+      ? Math.max(1, Math.min(5, Math.round(rawRating)))
+      : 5;
     const comment = String(req.body?.comment || '').trim();
 
     if (!bookId || !comment) {
       return res.status(400).json({ error: 'bookId dan ulasan wajib diisi.' });
+    }
+
+    const existingBook = await prisma.book.findUnique({ where: { id: bookId } });
+    if (!existingBook) {
+      return res.status(404).json({ error: 'Buku tidak ditemukan.' });
     }
 
     const created = await prisma.review.create({
@@ -1395,19 +1465,100 @@ function buildApiRouter() {
       }
     });
 
-    const updatedBook = await prisma.book.findUnique({
-      where: { id: bookId },
-      include: { reviews: { orderBy: { createdAt: 'desc' } }, _count: { select: { loans: true } } }
-    });
+    const updatedBook = await recalculateBookRating(prisma, bookId);
 
     res.status(201).json({
       review: {
         id: created.id,
+        userId: created.userId,
         user: created.reviewer_name,
+        username: req.user.username,
+        role: String(req.user.role || '').toLowerCase(),
         rating: created.rating,
         comment: created.comment,
+        createdAt: created.createdAt,
         date: 'Baru saja'
       },
+      book: updatedBook ? serializeBook(updatedBook) : null
+    });
+  });
+
+  // ADMIN: Hapus komentar / ulasan secara permanen & hitung ulang rating buku
+  router.delete('/reviews/:id', requireRoles('ADMIN'), async (req, res) => {
+    const reviewId = String(req.params.id || '').trim();
+    const existing = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Ulasan/komentar tidak ditemukan.' });
+    }
+
+    await prisma.review.delete({ where: { id: reviewId } });
+    const updatedBook = await recalculateBookRating(prisma, existing.bookId);
+
+    return res.json({
+      deletedId: reviewId,
+      book: updatedBook ? serializeBook(updatedBook) : null
+    });
+  });
+
+  // ADMIN: Hapus rating tidak wajar pada satu ulasan & hitung ulang rata-rata rating
+  router.patch('/reviews/:id/clear-rating', requireRoles('ADMIN'), async (req, res) => {
+    const reviewId = String(req.params.id || '').trim();
+    const existing = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Ulasan tidak ditemukan.' });
+    }
+
+    await prisma.review.update({
+      where: { id: reviewId },
+      data: { rating: null }
+    });
+
+    const updatedBook = await recalculateBookRating(prisma, existing.bookId);
+
+    return res.json({
+      reviewId,
+      book: updatedBook ? serializeBook(updatedBook) : null
+    });
+  });
+
+  // ADMIN: Reset rating buku (ratings_only | all | recalculate)
+  router.post('/books/:id/reviews/reset', requireRoles('ADMIN'), async (req, res) => {
+    const bookId = String(req.params.id || '').trim();
+    const mode = String(req.body?.mode || 'all').trim().toLowerCase();
+
+    const existingBook = await prisma.book.findUnique({ where: { id: bookId } });
+    if (!existingBook) {
+      return res.status(404).json({ error: 'Buku tidak ditemukan.' });
+    }
+
+    let affectedCount = 0;
+
+    if (mode === 'ratings_only') {
+      const updated = await prisma.review.updateMany({
+        where: { bookId, rating: { not: null } },
+        data: { rating: null }
+      });
+      affectedCount = updated.count;
+    } else if (mode === 'recalculate') {
+      // Hapus rating di luar rentang 1..5 jika ada, lalu hitung ulang
+      const fixed = await prisma.review.updateMany({
+        where: {
+          bookId,
+          OR: [{ rating: { lt: 1 } }, { rating: { gt: 5 } }]
+        },
+        data: { rating: null }
+      });
+      affectedCount = fixed.count;
+    } else {
+      const deleted = await prisma.review.deleteMany({ where: { bookId } });
+      affectedCount = deleted.count;
+    }
+
+    const updatedBook = await recalculateBookRating(prisma, bookId);
+
+    return res.json({
+      mode,
+      affectedCount,
       book: updatedBook ? serializeBook(updatedBook) : null
     });
   });

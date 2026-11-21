@@ -196,6 +196,74 @@ export const CATEGORY_META = {
   }
 };
 
+export const BOOK_COVER_PALETTES = {
+  'Bards Tales': {
+    gradient: 'linear-gradient(135deg, #1e1145 0%, #3b1d70 50%, #0f172a 100%)',
+    bgClass: 'from-indigo-950 via-purple-900 to-slate-900',
+    border: 'rgba(168, 85, 247, 0.45)',
+    rune: '☽',
+    accentColor: '#8B5CF6',
+    textColor: '#F3E8FF',
+    ingredients: ['wind', 'shadow', 'ember']
+  },
+  'Alchemy': {
+    gradient: 'linear-gradient(135deg, #062e22 0%, #064e3b 50%, #091a13 100%)',
+    bgClass: 'from-emerald-950 via-teal-950 to-zinc-950',
+    border: 'rgba(16, 185, 129, 0.45)',
+    rune: '☉',
+    accentColor: '#10B981',
+    textColor: '#D1FAE5',
+    ingredients: ['spark', 'craft']
+  },
+  'Artificers Craft': {
+    gradient: 'linear-gradient(135deg, #082f49 0%, #0369a1 50%, #091728 100%)',
+    bgClass: 'from-cyan-950 via-blue-950 to-neutral-950',
+    border: 'rgba(14, 165, 233, 0.45)',
+    rune: '✧',
+    accentColor: '#06B6D4',
+    textColor: '#E0F2FE',
+    ingredients: ['craft', 'spark']
+  },
+  'Ancient Lore': {
+    gradient: 'linear-gradient(135deg, #451a03 0%, #78350f 50%, #1c1917 100%)',
+    bgClass: 'from-yellow-950 via-amber-900 to-neutral-950',
+    border: 'rgba(217, 119, 6, 0.45)',
+    rune: '🜃',
+    accentColor: '#D4AF37',
+    textColor: '#FEF3C7',
+    ingredients: ['wisdom', 'ember']
+  },
+  'Philosophy': {
+    gradient: 'linear-gradient(135deg, #2e1e12 0%, #573318 50%, #171311 100%)',
+    bgClass: 'from-amber-950 via-stone-900 to-neutral-950',
+    border: 'rgba(212, 175, 55, 0.45)',
+    rune: '🜂',
+    accentColor: '#D4AF37',
+    textColor: '#FDF6E2',
+    ingredients: ['wisdom', 'craft']
+  }
+};
+
+export function getBookCoverVisual(book) {
+  const category = normalizeCategory(book?.category || book?.school);
+  const palette = BOOK_COVER_PALETTES[category] || {
+    gradient: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #0c0a09 100%)',
+    bgClass: 'from-amber-950 via-stone-900 to-neutral-950',
+    border: 'rgba(212, 175, 55, 0.45)',
+    rune: '✦',
+    accentColor: '#D4AF37',
+    textColor: '#F5F5F4',
+    ingredients: ['wisdom', 'spark']
+  };
+
+  return {
+    ...palette,
+    rune: book?.coverRune || palette.rune,
+    coverGradient: book?.coverGradient || palette.bgClass,
+    gradient: palette.gradient
+  };
+}
+
 export function normalizeCategory(rawCategory) {
   const value = String(rawCategory || '').trim();
   const lower = value.toLowerCase();
@@ -325,6 +393,7 @@ export function enrichBook(book, index = 0) {
   if (!book) return book;
   const category = normalizeCategory(book.category || book.school);
   const meta = getCategoryMeta(category);
+  const visual = getBookCoverVisual(book);
   const numericId = String(book.id || '').match(/(\d+)$/);
   const fallbackNumber = String(index + 1).padStart(3, '0');
   const identity = numericId ? String(numericId[1]).padStart(3, '0') : fallbackNumber;
@@ -353,6 +422,11 @@ export function enrichBook(book, index = 0) {
     ...book,
     category,
     categoryLabel: book.categoryLabel || getCategoryLabel(category),
+    coverRune: book.coverRune || visual.rune,
+    coverGradient: book.coverGradient || visual.coverGradient,
+    coverGradientStyle: book.coverGradientStyle || visual.gradient,
+    accentColor: book.accentColor || visual.accentColor,
+    ingredients: Array.isArray(book.ingredients) && book.ingredients.length > 0 ? book.ingredients : visual.ingredients,
     jenjang,
     kelas,
     jurusan,
@@ -363,7 +437,7 @@ export function enrichBook(book, index = 0) {
     callNumber,
     barcode,
     shortTitle: book.shortTitle || shortenTitle(book.title),
-    shelfCode: book.shelfCode || String(book.shelf || '').split('\u2022').pop().trim()
+    shelfCode: book.shelfCode || String(book.shelf || '').split('•').pop().trim()
   };
 }
 

@@ -801,7 +801,7 @@ export default function LibraryReportsView({ books = [], loans = [], onOpenRemin
                           index === 0
                             ? 'bg-[#D4AF37] text-[#12100E]'
                             : index === 1
-                            ? 'bg-slate-400 text-[#12100E]'
+                            ? 'bg-stone-300 text-[#12100E]'
                             : index === 2
                             ? 'bg-amber-700 text-white'
                             : 'bg-white/10 text-[#A89F91]'

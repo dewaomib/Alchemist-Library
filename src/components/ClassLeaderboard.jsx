@@ -78,10 +78,9 @@ export default function ClassLeaderboard({
           <div
             className="relative rounded-2xl border overflow-hidden p-5 sm:p-7"
             style={{
-              borderColor: '#D4AF37',
-              background:
-                'radial-gradient(circle at 88% 12%, rgba(212, 175, 55, 0.35), rgba(16, 185, 129, 0.12) 42%, #1E1916 88%)',
-              boxShadow: '0 18px 45px -22px rgba(212, 175, 55, 0.55)'
+              borderColor: 'var(--theme-banner-border)',
+              background: 'var(--theme-leaderboard-bg)',
+              boxShadow: 'var(--theme-shadow-card)'
             }}
           >
             <div className="pointer-events-none absolute -right-12 -top-12 w-48 h-48 rounded-full border border-[#D4AF37]/20 animate-rune-spin" />

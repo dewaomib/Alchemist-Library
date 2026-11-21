@@ -22,6 +22,18 @@ export const READER_THEME_TOKENS = {
     dot: 'rgba(122, 92, 47, 0.12)',
     pdfFilter: 'sepia(0.22) brightness(0.98) contrast(0.97)',
     iframeBackground: '#F4ECD8'
+  },
+  modern: {
+    container: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    muted: '#475569',
+    border: '#E2E8F0',
+    accent: '#2563EB',
+    accentSoft: '#EFF6FF',
+    dot: 'rgba(37, 99, 235, 0.05)',
+    pdfFilter: 'none',
+    iframeBackground: '#FFFFFF'
   }
 };
 

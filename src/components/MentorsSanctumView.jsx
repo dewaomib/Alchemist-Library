@@ -47,9 +47,8 @@ export default function MentorsSanctumView({
       <section
         className="rounded-2xl p-6 sm:p-8 border relative overflow-hidden"
         style={{
-          background:
-            'radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.22), rgba(16, 185, 129, 0.08) 45%, #1E1916 90%)',
-          borderColor: '#38BDF8'
+          background: 'var(--theme-mentor-banner-bg)',
+          borderColor: 'var(--theme-mentor-banner-border)'
         }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
