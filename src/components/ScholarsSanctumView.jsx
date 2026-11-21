@@ -63,13 +63,13 @@ export default function ScholarsSanctumView({
 
             <div className="space-y-1.5">
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-cinzel bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40">
-                <span>OFFICIAL GUILD MEMBER CARD • ID #{currentUser.guildId || 'ARC-2026-089'}</span>
+                <span>OFFICIAL GUILD MEMBER CARD • ID #{currentUser?.guildId || 'ARC-2026-089'}</span>
               </div>
               <h1 className="font-cinzel text-2xl sm:text-3xl font-bold text-[#F4E8C1]">
-                {currentUser.name}
+                {currentUser?.name || 'Siswa'}
               </h1>
               <p className="text-xs sm:text-sm text-[#A89F91]">
-                {currentUser.class || 'Kelas XI MIPA 2 • Akademi Sains & Arkanum'}
+                {currentUser?.class || 'SMK Kelas 10 TKJ 1'}
               </p>
 
               {/* XP Progress Bar */}

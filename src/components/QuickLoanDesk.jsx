@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -7,7 +7,6 @@ import {
   Camera,
   CheckCircle2,
   Clock,
-  GraduationCap,
   Hash,
   MapPin,
   Phone,
@@ -54,11 +53,17 @@ export default function QuickLoanDesk({
   const [bookQuery, setBookQuery] = useState('');
   const [studentScanOpen, setStudentScanOpen] = useState(false);
   const [bookScanOpen, setBookScanOpen] = useState(false);
+  const [autoChainBookCamera, setAutoChainBookCamera] = useState(true);
+  const [activeFocusStep, setActiveFocusStep] = useState(1); // 1 = NISN Siswa, 2 = Barcode Buku
   const [quantity, setQuantity] = useState(1);
   const [durationDays, setDurationDays] = useState(14);
   const [notes, setNotes] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [receipt, setReceipt] = useState(null);
+
+  const studentSearchRef = useRef(null);
+  const bookSearchRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   const today = todayStart();
   const activeDuration =
@@ -85,18 +90,45 @@ export default function QuickLoanDesk({
         (loan.status === 'approved' || loan.status === 'active' || loan.status === 'pending') &&
         (loan.profileId === selectedMember.cardCode ||
           loan.borrowerCard === selectedMember.cardCode ||
+          loan.borrowerCard === selectedMember.nisn ||
           loan.borrowerName === selectedMember.name ||
           loan.requesterName === selectedMember.name)
     );
   }, [loans, selectedMember]);
 
-  const handlePickMember = (member) => {
+  // Saat siswa terpilih, otomatis pindahkan fokus ke pemindaian barcode buku (Langkah 2)
+  useEffect(() => {
+    if (selectedMember && !selectedBook) {
+      setActiveFocusStep(2);
+      const timer = setTimeout(() => {
+        bookSearchRef.current?.focus();
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+    if (!selectedMember) {
+      setActiveFocusStep(1);
+    }
+    return undefined;
+  }, [selectedMember, selectedBook]);
+
+  const handlePickMember = (member, fromCamera = false) => {
     setSelectedMember(member);
     setStudentQuery('');
     setFeedback(null);
     setReceipt(null);
     setDurationDays(14);
     if (member.role !== 'guru') setDurationDays(STUDENT_LOAN_DAYS);
+    setActiveFocusStep(2);
+
+    if (fromCamera && autoChainBookCamera && !selectedBook) {
+      setTimeout(() => {
+        setBookScanOpen(true);
+      }, 300);
+    } else {
+      setTimeout(() => {
+        bookSearchRef.current?.focus();
+      }, 120);
+    }
   };
 
   const handlePickBook = (book) => {
@@ -104,6 +136,9 @@ export default function QuickLoanDesk({
     setBookQuery('');
     setQuantity(1);
     setFeedback(null);
+    setTimeout(() => {
+      submitButtonRef.current?.focus();
+    }, 120);
   };
 
   const handleStudentScan = (rawValue) => {
@@ -112,14 +147,14 @@ export default function QuickLoanDesk({
     if (!member) {
       setFeedback({
         type: 'error',
-        message: `Kartu "${rawValue}" tidak dikenali. Pastikan kartu pelajar terdaftar atau gunakan pencarian manual.`
+        message: `Barcode/QR NISN "${rawValue}" tidak ditemukan di database siswa. Gunakan kolom pencarian cepat NISN/Nama di samping tombol kamera.`
       });
       return;
     }
-    handlePickMember(member);
+    handlePickMember(member, true);
     setFeedback({
       type: 'success',
-      message: `Kartu terverifikasi: ${member.name} (${member.cardCode}).`
+      message: `NISN ${member.nisn || member.cardCode} terverifikasi: ${member.name} (${member.jenjang || 'SMK'} Kelas ${member.kelas || '-'} • ${member.jurusan || 'Semua Jurusan'}). Fokus dialihkan ke pemindaian Barcode Buku.`
     });
   };
 
@@ -136,8 +171,40 @@ export default function QuickLoanDesk({
     handlePickBook(book);
     setFeedback({
       type: 'success',
-      message: `Buku terverifikasi: ${book.title} (${book.kodeBuku}).`
+      message: `Buku terverifikasi: ${book.title} (${book.kodeBuku}). Siap klik Pinjam Sekarang!`
     });
+  };
+
+  const handleStudentSearchKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const raw = studentQuery.trim();
+      if (!raw) return;
+      const exactMember = matchMemberByCode(members, raw) || memberResults[0];
+      if (exactMember) {
+        handlePickMember(exactMember, false);
+        setFeedback({
+          type: 'success',
+          message: `Siswa dipilih: ${exactMember.name} (NISN: ${exactMember.nisn}). Silakan pindai barcode buku.`
+        });
+      }
+    }
+  };
+
+  const handleBookSearchKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const raw = bookQuery.trim();
+      if (!raw) return;
+      const exactBook = matchBookByCode(books, raw) || bookResults[0];
+      if (exactBook) {
+        handlePickBook(exactBook);
+        setFeedback({
+          type: 'success',
+          message: `Buku dipilih: ${exactBook.title} (${exactBook.kodeBuku}).`
+        });
+      }
+    }
   };
 
   const resetTransaction = (clearMember = false) => {
@@ -150,6 +217,9 @@ export default function QuickLoanDesk({
     if (clearMember) {
       setSelectedMember(null);
       setStudentQuery('');
+      setActiveFocusStep(1);
+    } else {
+      setActiveFocusStep(2);
     }
   };
 
@@ -165,7 +235,7 @@ export default function QuickLoanDesk({
       dueDate: toISODate(dueDate),
       notes:
         notes.trim() ||
-        `Peminjaman kilat melalui pemindaian barcode oleh pustakawan untuk ${selectedMember.name}.`
+        `Peminjaman kilat berbasis NISN (${selectedMember.nisn || selectedMember.cardCode}) untuk ${selectedMember.name}.`
     });
 
     if (result?.ok) {
@@ -197,42 +267,59 @@ export default function QuickLoanDesk({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-cinzel font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
               <Sparkles className="w-3 h-3" />
-              TRANSAKSI KILAT • PEMINDAIAN BARCODE
+              TRANSAKSI KILAT • PEMINDAIAN KARTU PELAJAR BERBASIS NISN
             </div>
             <h2 className="font-cinzel text-xl sm:text-2xl font-bold text-[#F4E8C1] mt-2 flex items-center gap-2">
               <ScanLine className="w-5 h-5 text-[#D4AF37]" />
-              <span>Meja Sirkulasi Pindai Cepat</span>
+              <span>Meja Sirkulasi Pindai NISN &amp; Barcode Buku</span>
             </h2>
             <p className="text-xs text-[#A89F91] mt-1 max-w-2xl leading-relaxed">
-              Pindai kartu pelajar, lalu pindai barcode buku. Tekan <strong className="text-[#F4E8C1]">Pinjam Sekarang</strong> &mdash;
-              stok rak dan status peminjaman diperbarui otomatis tanpa mengetik manual.
+              Langkah 1: Pindai barcode/QR <strong className="text-[#F4E8C1]">NISN</strong> pada kartu pelajar siswa (mendukung NISN dengan angka nol di awal seperti <code className="text-emerald-300">0081234567</code>). Begitu terverifikasi, fokus otomatis berpindah ke Langkah 2 (<strong className="text-[#F4E8C1]">Barcode Buku</strong>).
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] text-[#A89F91] bg-black/30 border border-white/10 rounded-xl px-3 py-2 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Kamera siap • mode lokal/cloud</span>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 text-[10px] text-[#A89F91] bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Fokus Aktif: Langkah {activeFocusStep === 1 ? '1 (Scan NISN)' : '2 (Scan Buku)'}</span>
+            </div>
+            <label className="flex items-center gap-1.5 text-[10px] text-[#A89F91] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoChainBookCamera}
+                onChange={(e) => setAutoChainBookCamera(e.target.checked)}
+                className="rounded border-[#D4AF37]/40 bg-[#12100E] text-emerald-500 focus:ring-0"
+              />
+              <span>Otomatis buka kamera buku setelah scan NISN</span>
+            </label>
           </div>
         </div>
 
         {/* Langkah 1 & 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* KARTU PELAJAR */}
+          {/* LANGKAH 1: KARTU PELAJAR BERBASIS NISN */}
           <div
-            className={`rounded-2xl border p-4 sm:p-5 transition-colors ${
+            className={`rounded-2xl border p-4 sm:p-5 transition-all ${
               selectedMember
                 ? 'bg-emerald-500/5 border-emerald-500/40'
+                : activeFocusStep === 1
+                ? 'bg-black/30 border-emerald-400/70 ring-1 ring-emerald-400/30'
                 : 'bg-black/30 border-[#D4AF37]/25'
             }`}
           >
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-[#D4AF37] text-[#12100E] flex items-center justify-center text-xs font-bold">
+                <span className="w-6 h-6 rounded-lg bg-emerald-400 text-[#12100E] flex items-center justify-center text-xs font-bold">
                   1
                 </span>
-                <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1]">
-                  Kartu Pelajar / Anggota
-                </h3>
+                <div>
+                  <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1]">
+                    Pindai Kartu Pelajar (NISN)
+                  </h3>
+                  <p className="text-[10px] text-[#A89F91]">
+                    Scan QR/Barcode NISN atau ketik di kolom pencarian samping
+                  </p>
+                </div>
               </div>
               {selectedMember && (
                 <button
@@ -240,17 +327,18 @@ export default function QuickLoanDesk({
                   onClick={() => {
                     setSelectedMember(null);
                     setFeedback(null);
+                    setActiveFocusStep(1);
                   }}
-                  className="text-[10px] text-[#A89F91] hover:text-[#F4E8C1] flex items-center gap-1"
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[#A89F91] hover:text-[#F4E8C1] flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Ganti
+                  Ganti Siswa
                 </button>
               )}
             </div>
 
             {selectedMember ? (
-              <div className="space-y-3">
+              <div className="space-y-3 animate-fadeIn">
                 <div className="flex items-start gap-3">
                   <div
                     className="w-12 h-12 rounded-xl border flex items-center justify-center text-xl shrink-0"
@@ -273,36 +361,55 @@ export default function QuickLoanDesk({
                             : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
                         }`}
                       >
-                        {selectedMember.role === 'guru' ? 'GURU' : 'SISWA'}
+                        {selectedMember.role === 'guru' ? 'GURU' : 'SISWA TERVERIFIKASI'}
                       </span>
                     </div>
                     <p className="text-[11px] text-[#A89F91] mt-0.5">
-                      {selectedMember.classLabel || selectedMember.className}
+                      {selectedMember.username ? `Username: @${selectedMember.username} • ` : ''}
+                      ID Kartu: {selectedMember.cardCode}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#A89F91] mt-1.5">
-                      <span className="flex items-center gap-1 font-mono text-[#D4AF37]">
-                        <Hash className="w-3 h-3" />
-                        {selectedMember.cardCode}
-                      </span>
-                      {selectedMember.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {selectedMember.phone}
-                        </span>
-                      )}
-                    </div>
+                  </div>
+                </div>
+
+                {/* PROFIL LENGKAP SISWA: NAMA, NISN, JENJANG, KELAS, JURUSAN */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-emerald-500/30">
+                    <span className="text-[#A89F91] block">NISN (Teks)</span>
+                    <strong className="font-mono text-emerald-300 text-xs block mt-0.5">
+                      {selectedMember.nisn || selectedMember.cardCode}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/10">
+                    <span className="text-[#A89F91] block">Jenjang</span>
+                    <strong className="text-[#D4AF37] text-xs block mt-0.5">
+                      {selectedMember.jenjang || 'SMK'}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/10">
+                    <span className="text-[#A89F91] block">Kelas</span>
+                    <strong className="text-[#F4E8C1] text-xs block mt-0.5">
+                      Kelas {selectedMember.kelas || selectedMember.level || '10'}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/10">
+                    <span className="text-[#A89F91] block">Jurusan</span>
+                    <strong className="text-sky-300 text-xs block mt-0.5 truncate">
+                      {selectedMember.jurusan || 'Semua Jurusan'}
+                    </strong>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                    <span className="text-[#A89F91] block">Pinjaman aktif</span>
-                    <strong className="text-emerald-300 text-sm">{activeLoanCount} buku</strong>
+                    <span className="text-[#A89F91] block">Pinjaman Aktif</span>
+                    <strong className="text-emerald-300 text-xs">{activeLoanCount} buku</strong>
                   </div>
                   <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                    <span className="text-[#A89F91] block">Batas pinjam</span>
-                    <strong className="text-[#F4E8C1] text-sm">
-                      {selectedMember.role === 'guru' ? `${TEACHER_LOAN_DAYS_OPTIONS.join('/')} hari` : '7 hari'}
+                    <span className="text-[#A89F91] block">Hak Durasi Pinjam</span>
+                    <strong className="text-[#F4E8C1] text-xs">
+                      {selectedMember.role === 'guru'
+                        ? `${TEACHER_LOAN_DAYS_OPTIONS.join('/')} hari`
+                        : '7 hari'}
                     </strong>
                   </div>
                 </div>
@@ -332,51 +439,61 @@ export default function QuickLoanDesk({
               </div>
             ) : (
               <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setStudentScanOpen(true)}
-                  className="w-full py-3.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 transition-all flex items-center justify-center gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  Pindai Barcode Kartu Pelajar
-                </button>
+                {/* Tombol Kamera & Kolom Pencarian Cepat NISN/Nama Bersebelahan */}
+                <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStudentScanOpen(true)}
+                    className="sm:w-auto px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-2 shrink-0 shadow-md"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Scan Kamera NISN</span>
+                  </button>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={studentQuery}
-                    onChange={(event) => setStudentQuery(event.target.value)}
-                    placeholder="Atau cari nama / NISN / kode kartu..."
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/25 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]/60"
-                  />
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      ref={studentSearchRef}
+                      type="text"
+                      value={studentQuery}
+                      onChange={(event) => setStudentQuery(event.target.value)}
+                      onKeyDown={handleStudentSearchKeyDown}
+                      placeholder="Ketik NISN (misal 0081234567) atau Nama Siswa..."
+                      className="w-full h-full pl-8 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/35 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
                 </div>
 
-                <div className="max-h-44 overflow-y-auto space-y-1 pr-0.5">
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
                   {memberResults.length === 0 ? (
                     <p className="text-[11px] text-[#A89F91] text-center py-3">
-                      Anggota tidak ditemukan.
+                      Siswa dengan NISN atau nama tersebut tidak ditemukan.
                     </p>
                   ) : (
                     memberResults.map((member) => (
                       <button
                         key={member.id}
                         type="button"
-                        onClick={() => handlePickMember(member)}
-                        className="w-full text-left p-2 rounded-lg bg-black/25 hover:bg-[#D4AF37]/10 border border-white/5 hover:border-[#D4AF37]/35 transition-colors flex items-center gap-2"
+                        onClick={() => handlePickMember(member, false)}
+                        className="w-full text-left p-2.5 rounded-xl bg-black/25 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/40 transition-colors flex items-center gap-2.5"
                       >
-                        <span className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm shrink-0">
+                        <span className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm shrink-0">
                           {member.avatar || getInitials(member.name)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[11px] font-semibold text-[#F4E8C1] truncate">
-                            {member.name}
+                          <span className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-[#F4E8C1] truncate">
+                              {member.name}
+                            </span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                              NISN: {member.nisn || member.cardCode}
+                            </span>
                           </span>
-                          <span className="block text-[9px] text-[#A89F91] truncate">
-                            {member.cardCode} • {member.className}
+                          <span className="block text-[10px] text-[#A89F91] truncate mt-0.5">
+                            {member.jenjang || 'SMK'} • Kelas {member.kelas || member.level} • Jurusan {member.jurusan || 'Semua Jurusan'}
                           </span>
                         </span>
-                        <ArrowRight className="w-3 h-3 text-[#D4AF37] shrink-0" />
+                        <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       </button>
                     ))
                   )}
@@ -385,11 +502,13 @@ export default function QuickLoanDesk({
             )}
           </div>
 
-          {/* BUKU */}
+          {/* LANGKAH 2: BARCODE BUKU */}
           <div
-            className={`rounded-2xl border p-4 sm:p-5 transition-colors ${
+            className={`rounded-2xl border p-4 sm:p-5 transition-all ${
               selectedBook
                 ? 'bg-amber-500/5 border-amber-500/40'
+                : activeFocusStep === 2
+                ? 'bg-amber-500/5 border-[#D4AF37] ring-2 ring-[#D4AF37]/35 shadow-[0_0_25px_rgba(212,175,55,0.15)]'
                 : 'bg-black/30 border-[#D4AF37]/25'
             }`}
           >
@@ -398,9 +517,19 @@ export default function QuickLoanDesk({
                 <span className="w-6 h-6 rounded-lg bg-[#D4AF37] text-[#12100E] flex items-center justify-center text-xs font-bold">
                   2
                 </span>
-                <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1]">
-                  Barcode Buku / ISBN
-                </h3>
+                <div>
+                  <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1] flex items-center gap-1.5">
+                    <span>Pindai Barcode Buku</span>
+                    {activeFocusStep === 2 && !selectedBook && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40 animate-pulse">
+                        FOKUS AKTIF
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[10px] text-[#A89F91]">
+                    Scan barcode punggung buku / ISBN atau cari kode buku
+                  </p>
+                </div>
               </div>
               {selectedBook && (
                 <button
@@ -408,17 +537,18 @@ export default function QuickLoanDesk({
                   onClick={() => {
                     setSelectedBook(null);
                     setFeedback(null);
+                    setActiveFocusStep(2);
                   }}
-                  className="text-[10px] text-[#A89F91] hover:text-[#F4E8C1] flex items-center gap-1"
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[#A89F91] hover:text-[#F4E8C1] flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Ganti
+                  Ganti Buku
                 </button>
               )}
             </div>
 
             {selectedBook ? (
-              <div className="space-y-3">
+              <div className="space-y-3 animate-fadeIn">
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-12 h-16 rounded-lg bg-gradient-to-br ${
@@ -428,13 +558,24 @@ export default function QuickLoanDesk({
                     {selectedBook.coverRune || '✦'}
                   </div>
                   <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1 mb-0.5">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-semibold">
+                        {selectedBook.jenjang || 'Umum'} • Kls {selectedBook.kelas || 'Semua'}
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                        {selectedBook.jurusan || 'Semua Jurusan'}
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                        {selectedBook.jenisBuku || 'Referensi'}
+                      </span>
+                    </div>
                     <h4 className="font-cinzel font-bold text-sm text-[#F4E8C1] line-clamp-2">
                       {selectedBook.title}
                     </h4>
                     <p className="text-[10px] italic text-[#D4AF37]/80 truncate">
                       {selectedBook.author}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#A89F91] mt-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#A89F91] mt-1">
                       <span className="flex items-center gap-1 font-mono text-[#D4AF37]">
                         <Hash className="w-3 h-3" />
                         {selectedBook.kodeBuku}
@@ -481,7 +622,12 @@ export default function QuickLoanDesk({
                       max={Math.max(1, selectedBook.availableStock)}
                       value={quantity}
                       onChange={(event) =>
-                        setQuantity(Math.max(1, Math.min(selectedBook.availableStock, Number(event.target.value) || 1)))
+                        setQuantity(
+                          Math.max(
+                            1,
+                            Math.min(selectedBook.availableStock, Number(event.target.value) || 1)
+                          )
+                        )
                       }
                       className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                     />
@@ -496,27 +642,31 @@ export default function QuickLoanDesk({
               </div>
             ) : (
               <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setBookScanOpen(true)}
-                  className="w-full py-3.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/40 hover:bg-[#D4AF37]/25 transition-all flex items-center justify-center gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  Pindai Barcode Buku
-                </button>
+                <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBookScanOpen(true)}
+                    className="sm:w-auto px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 hover:bg-[#D4AF37]/30 transition-all flex items-center justify-center gap-2 shrink-0 shadow-md"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Scan Kamera Buku</span>
+                  </button>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={bookQuery}
-                    onChange={(event) => setBookQuery(event.target.value)}
-                    placeholder="Atau cari judul / kode buku / ISBN..."
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/25 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]/60"
-                  />
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      ref={bookSearchRef}
+                      type="text"
+                      value={bookQuery}
+                      onChange={(event) => setBookQuery(event.target.value)}
+                      onKeyDown={handleBookSearchKeyDown}
+                      placeholder="Scan/ketik Kode Buku, ISBN, atau Judul..."
+                      className="w-full h-full pl-8 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/35 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
                 </div>
 
-                <div className="max-h-44 overflow-y-auto space-y-1 pr-0.5">
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
                   {bookResults.length === 0 ? (
                     <p className="text-[11px] text-[#A89F91] text-center py-3">
                       Buku tidak ditemukan.
@@ -527,17 +677,17 @@ export default function QuickLoanDesk({
                         key={book.id}
                         type="button"
                         onClick={() => handlePickBook(book)}
-                        className="w-full text-left p-2 rounded-lg bg-black/25 hover:bg-[#D4AF37]/10 border border-white/5 hover:border-[#D4AF37]/35 transition-colors flex items-center gap-2"
+                        className="w-full text-left p-2.5 rounded-xl bg-black/25 hover:bg-[#D4AF37]/10 border border-white/5 hover:border-[#D4AF37]/35 transition-colors flex items-center gap-2"
                       >
-                        <span className="w-7 h-7 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/25 flex items-center justify-center text-sm shrink-0 text-[#D4AF37]">
+                        <span className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/25 flex items-center justify-center text-sm shrink-0 text-[#D4AF37]">
                           {book.coverRune || '✦'}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[11px] font-semibold text-[#F4E8C1] truncate">
+                          <span className="block text-xs font-semibold text-[#F4E8C1] truncate">
                             {book.title}
                           </span>
-                          <span className="block text-[9px] text-[#A89F91] truncate">
-                            {book.kodeBuku} • stok {book.availableStock}/{book.totalStock}
+                          <span className="block text-[10px] text-[#A89F91] truncate">
+                            <span className="font-mono text-[#D4AF37]">{book.kodeBuku}</span> • {book.jenjang || 'Umum'} Kls {book.kelas || 'Semua'} ({book.jurusan || 'Semua Jurusan'}) • Stok {book.availableStock}/{book.totalStock}
                           </span>
                         </span>
                         <span
@@ -625,7 +775,7 @@ export default function QuickLoanDesk({
               type="text"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Contoh: Dipinjam untuk tugas proyek sains, harap dikembalikan tepat waktu."
+              placeholder="Contoh: Dipinjam untuk kegiatan belajar kurikulum sekolah."
               className="w-full px-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/25 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]/60"
             />
           </div>
@@ -633,10 +783,11 @@ export default function QuickLoanDesk({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
             <p className="text-[10px] text-[#A89F91] flex items-center gap-1.5">
               <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Stok, status, dan tanggal jatuh tempo akan tercatat otomatis.
+              NISN siswa, stok buku, dan tanggal jatuh tempo tercatat otomatis.
             </p>
 
             <button
+              ref={submitButtonRef}
               type="submit"
               disabled={
                 !selectedMember ||
@@ -688,9 +839,11 @@ export default function QuickLoanDesk({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
             <div className="p-2.5 rounded-lg bg-black/25 border border-white/5">
-              <span className="text-[#A89F91] block text-[10px]">Peminjam</span>
+              <span className="text-[#A89F91] block text-[10px]">Peminjam (NISN)</span>
               <strong className="text-[#F4E8C1]">{receipt.borrowerName}</strong>
-              <span className="block text-[9px] text-[#A89F91]">{receipt.className}</span>
+              <span className="block text-[9px] text-emerald-300 font-mono">
+                NISN: {receipt.borrowerNisn || receipt.borrowerCard} • {receipt.className}
+              </span>
             </div>
             <div className="p-2.5 rounded-lg bg-black/25 border border-white/5">
               <span className="text-[#A89F91] block text-[10px]">Buku</span>
@@ -721,7 +874,7 @@ export default function QuickLoanDesk({
               className="px-3.5 py-2 rounded-lg text-[11px] font-cinzel font-semibold bg-white/5 text-[#F4E8C1] border border-white/10 hover:border-[#D4AF37]/40 transition-colors flex items-center gap-1.5"
             >
               <UserRound className="w-3.5 h-3.5" />
-              Transaksi Baru
+              Pindai NISN Siswa Berikutnya
             </button>
           </div>
         </div>
@@ -731,8 +884,8 @@ export default function QuickLoanDesk({
         isOpen={studentScanOpen}
         onClose={() => setStudentScanOpen(false)}
         onDetected={handleStudentScan}
-        title="Pindai Kartu Pelajar"
-        subtitle="Arahkan kamera ke barcode/QR pada kartu anggota perpustakaan."
+        title="Langkah 1: Pindai NISN Kartu Pelajar"
+        subtitle="Arahkan kamera ke barcode atau QR Code NISN pada kartu pelajar siswa (mendukung angka 0 di awal seperti 0081234567)."
         accent="emerald"
       />
 
@@ -740,8 +893,8 @@ export default function QuickLoanDesk({
         isOpen={bookScanOpen}
         onClose={() => setBookScanOpen(false)}
         onDetected={handleBookScan}
-        title="Pindai Barcode Buku"
-        subtitle="Arahkan kamera ke barcode pada label rak atau cover belakang buku."
+        title="Langkah 2: Pindai Barcode Buku"
+        subtitle={`Siswa: ${selectedMember?.name || '-'} (NISN: ${selectedMember?.nisn || '-'}) • Arahkan kamera ke barcode buku.`}
         accent="gold"
       />
     </section>

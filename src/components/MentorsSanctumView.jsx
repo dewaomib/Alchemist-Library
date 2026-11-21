@@ -67,7 +67,7 @@ export default function MentorsSanctumView({
                 <span>GUILD MENTOR • FAKULTAS SAINS &amp; AKADEMI NUSANTARA</span>
               </div>
               <h1 className="font-cinzel text-2xl sm:text-3xl font-bold text-[#F4E8C1]">
-                {currentUser.name}
+                {currentUser?.name || 'Guru Pengampu'}
               </h1>
               <p className="text-xs sm:text-sm text-[#A89F91]">
                 Pengampu Kurikulum Sains Alkimia • Fasilitator Peminjaman Kolektif Kelas Siswa

@@ -1,109 +1,169 @@
 import React, { useState } from 'react';
 import {
   X,
-  Shield,
-  Crown,
-  GraduationCap,
   KeyRound,
-  Mail,
+  User,
+  UserPlus,
   Lock,
   ArrowRight,
   Sparkles,
-  CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Hash
 } from 'lucide-react';
 import { PRESET_USERS } from './RoleSwitcherBar';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { api } from '../lib/apiClient';
+import {
+  KELAS_BY_JENJANG,
+  SMK_JURUSAN_OPTIONS,
+  normalizeNisn
+} from '../utils/libraryUtils';
 
 export default function GatekeeperAuthModal({
   isOpen,
   onClose,
   currentUser,
+  members = [],
+  onRegisterMember,
   onLoginSuccess,
   showToast
 }) {
-  const [activeTab, setActiveTab] = useState('quick'); // 'quick' | 'email'
-  const [email, setEmail] = useState('');
+  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register' | 'quick'
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Form Registrasi Akun Baru (Username & Password tanpa Email)
+  const [regForm, setRegForm] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'siswa',
+    nisn: '',
+    jenjang: 'SMK',
+    kelas: '10',
+    jurusan: 'TKJ'
+  });
+
   if (!isOpen) return null;
 
-  const handleQuickLogin = (userPreset) => {
-    onLoginSuccess(userPreset);
-    showToast(
-      `Selamat Datang, ${userPreset.name}!`,
-      `Kamu kini bertindak sebagai ${userPreset.title} di The Grand Alchemist's Archive.`,
-      'emerald'
-    );
-    onClose();
-  };
-
-  const handleEmailLogin = async (e) => {
-    e.preventDefault();
+  const handleQuickLogin = async (userPreset) => {
     setErrorMsg('');
     setIsLoading(true);
-
     try {
-      // 1. If Supabase Auth is enabled, try authenticating with Supabase
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password: password.trim()
-          });
-
-          if (!error && data?.user) {
-            // Check metadata role or fallback
-            const role = data.user.user_metadata?.role || 'siswa';
-            const preset = PRESET_USERS[role] || {
-              id: data.user.id,
-              name: data.user.user_metadata?.name || data.user.email.split('@')[0],
-              email: data.user.email,
-              role: role,
-              title: role === 'admin' ? 'Grand Archivist' : role === 'guru' ? 'Guild Mentor' : 'Scholar',
-              avatar: role === 'admin' ? '🧙‍♂️' : role === 'guru' ? '📜' : '⚔️',
-              color: role === 'admin' ? '#D4AF37' : role === 'guru' ? '#38BDF8' : '#10B981'
-            };
-
-            onLoginSuccess(preset);
-            showToast('Autentikasi Supabase Berhasil!', `Selamat datang kembali, ${preset.name}.`, 'emerald');
-            onClose();
-            return;
-          }
-        } catch (supabaseErr) {
-          console.warn('Supabase auth attempted, falling back to local credentials:', supabaseErr);
-        }
-      }
-
-      // 2. Local Demo Credential Match
-      const cleanEmail = email.trim().toLowerCase();
-      let matchedUser = null;
-
-      if (cleanEmail.includes('admin') || cleanEmail === 'archivist@academy.grand') {
-        matchedUser = PRESET_USERS.admin;
-      } else if (cleanEmail.includes('guru') || cleanEmail.includes('hendra') || cleanEmail === 'hendra.wijaya@academy.grand') {
-        matchedUser = PRESET_USERS.guru;
-      } else if (cleanEmail.includes('arya') || cleanEmail.includes('siswa') || cleanEmail === 'arya.pendragon@academy.grand') {
-        matchedUser = PRESET_USERS.siswa;
-      }
-
-      if (matchedUser) {
-        onLoginSuccess(matchedUser);
-        showToast(
-          'Gerbang Arkanum Terbuka!',
-          `Autentikasi berhasil sebagai ${matchedUser.title}.`,
-          'emerald'
-        );
-        onClose();
-      } else {
-        setErrorMsg('Email atau sandi tidak dikenali oleh Gerbang Arkanum. Gunakan akun demo atau pilih karakter di tab sebelah.');
-      }
+      const res = await api.login({
+        username: userPreset.username,
+        password: userPreset.password
+      });
+      onLoginSuccess(res.user);
+      showToast(
+        `Selamat Datang, ${res.user.name}!`,
+        `Sesi PostgreSQL aktif untuk @${res.user.username} (${res.user.title}).`,
+        'emerald'
+      );
+      onClose();
+    } catch (err) {
+      setErrorMsg(err?.message || 'Gagal melakukan login cepat ke PostgreSQL.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleUsernameLogin = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    const rawUsername = username.trim();
+    const rawPassword = password;
+
+    if (!rawUsername || !rawPassword) {
+      setErrorMsg('Username dan kata sandi wajib diisi.');
+      return;
+    }
+
+    setIsLoading(true);
+    const cleanUser = rawUsername.toLowerCase();
+
+    try {
+      const res = await api.login({
+        username: cleanUser,
+        password: rawPassword
+      });
+      onLoginSuccess(res.user);
+      showToast(
+        'Autentikasi Berhasil!',
+        `Selamat datang kembali, ${res.user.name} (@${res.user.username}).`,
+        'emerald'
+      );
+      onClose();
+    } catch (err) {
+      setErrorMsg(
+        err?.message ||
+          'Username atau kata sandi salah. Gunakan akun terdaftar (misal: admin / admin123, hendra / password123, arya / password123).'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    const cleanUser = regForm.username
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '');
+    const cleanPass = regForm.password;
+    const cleanName = regForm.name.trim();
+    const cleanNisn = normalizeNisn(regForm.nisn);
+
+    if (!cleanUser || cleanUser.length < 3) {
+      setErrorMsg('Username minimal terdiri dari 3 karakter huruf/angka.');
+      return;
+    }
+    if (!cleanPass || cleanPass.length < 6) {
+      setErrorMsg('Kata sandi minimal 6 karakter.');
+      return;
+    }
+    if (!cleanName) {
+      setErrorMsg('Nama lengkap wajib diisi.');
+      return;
+    }
+    if (!cleanNisn) {
+      setErrorMsg('NISN siswa wajib diisi (contoh: 0081234567).');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const jurusanFinal =
+        regForm.jenjang === 'SMK' ? regForm.jurusan : 'Semua Jurusan';
+      const res = await api.register({
+        username: cleanUser,
+        password: cleanPass,
+        nama: cleanName,
+        nisn: cleanNisn,
+        jenjang: regForm.jenjang,
+        kelas: regForm.kelas,
+        jurusan: jurusanFinal
+      });
+
+      onRegisterMember?.(res.user);
+      onLoginSuccess(res.user);
+      showToast(
+        'Akun Baru Berhasil Didaftarkan!',
+        `Akun PostgreSQL dibuat untuk ${res.user.name} (@${res.user.username}).`,
+        'emerald'
+      );
+      onClose();
+    } catch (err) {
+      setErrorMsg(err?.message || 'Gagal mendaftarkan akun ke database PostgreSQL.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const availableKelasOptions = KELAS_BY_JENJANG[regForm.jenjang] || ['10', '11', '12'];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
@@ -127,7 +187,7 @@ export default function GatekeeperAuthModal({
         </button>
 
         {/* Header */}
-        <div className="text-center space-y-1.5 mb-6">
+        <div className="text-center space-y-1.5 mb-5">
           <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center border border-[#D4AF37] bg-gradient-to-br from-amber-500/20 to-purple-500/10 shadow-[0_0_15px_rgba(212,175,55,0.25)]">
             <KeyRound className="w-6 h-6 text-[#D4AF37]" />
           </div>
@@ -135,48 +195,305 @@ export default function GatekeeperAuthModal({
             Guild Gatekeeper
           </h2>
           <p className="text-xs text-[#A89F91]">
-            Portal Autentikasi 3 Role: Admin Pustaka, Guru Pengampu, &amp; Siswa
+            Autentikasi Sekolah Berbasis Username &amp; Password (Tanpa Email)
           </p>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex rounded-xl bg-black/40 border border-[#D4AF37]/20 p-1 mb-6 text-xs font-cinzel">
+        <div className="grid grid-cols-3 rounded-xl bg-black/40 border border-[#D4AF37]/20 p-1 mb-5 text-[11px] font-cinzel gap-1">
           <button
-            onClick={() => setActiveTab('quick')}
-            className={`flex-1 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+            type="button"
+            onClick={() => {
+              setActiveTab('login');
+              setErrorMsg('');
+            }}
+            className={`py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'login'
+                ? 'bg-[#D4AF37] text-[#12100E] shadow-md'
+                : 'text-[#A89F91] hover:text-[#F4E8C1]'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Masuk</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('register');
+              setErrorMsg('');
+            }}
+            className={`py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'register'
+                ? 'bg-[#D4AF37] text-[#12100E] shadow-md'
+                : 'text-[#A89F91] hover:text-[#F4E8C1]'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Daftar Akun</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('quick');
+              setErrorMsg('');
+            }}
+            className={`py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'quick'
                 ? 'bg-[#D4AF37] text-[#12100E] shadow-md'
                 : 'text-[#A89F91] hover:text-[#F4E8C1]'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Pilih Cepat Akun Demo</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('email')}
-            className={`flex-1 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'email'
-                ? 'bg-[#D4AF37] text-[#12100E] shadow-md'
-                : 'text-[#A89F91] hover:text-[#F4E8C1]'
-            }`}
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span>Login Email &amp; Sandi</span>
+            <span>Akun Demo</span>
           </button>
         </div>
 
-        {/* TAB 1: QUICK CHARACTER PICK */}
+        {/* TAB 1: USERNAME & PASSWORD LOGIN */}
+        {activeTab === 'login' && (
+          <form onSubmit={handleUsernameLogin} className="space-y-4">
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                Username Pengguna:
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Masukkan username (contoh: admin / hendra / arya / nadia.tkj)"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+              <p className="text-[10px] text-[#A89F91] mt-1">
+                Petunjuk: Ketik username <strong>admin</strong>, <strong>hendra</strong> (Guru), <strong>arya</strong> (Siswa), atau NISN.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
+                Password / Kata Sandi:
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              {isLoading ? (
+                <span>Memverifikasi Username...</span>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" />
+                  <span>Masuk dengan Username</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* TAB 2: REGISTER NEW ACCOUNT (USERNAME & PASSWORD ONLY) */}
+        {activeTab === 'register' && (
+          <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Username Baru:
+                </label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={regForm.username}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, username: e.target.value })
+                    }
+                    placeholder="contoh: budi.tkj10"
+                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Password:
+                </label>
+                <div className="relative">
+                  <Lock className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    value={regForm.password}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, password: e.target.value })
+                    }
+                    placeholder="Minimal 4 karakter"
+                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Nama Lengkap:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={regForm.name}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, name: e.target.value })
+                  }
+                  placeholder="Nama Lengkap Siswa / Guru"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  NISN (Teks 10 Digit):
+                </label>
+                <div className="relative">
+                  <Hash className="w-3.5 h-3.5 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required={regForm.role === 'siswa'}
+                    value={regForm.nisn}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, nisn: e.target.value })
+                    }
+                    placeholder="Contoh: 0081234567"
+                    className="w-full pl-8 pr-3 py-2 rounded-xl text-xs font-mono bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Jenjang:
+                </label>
+                <select
+                  value={regForm.jenjang}
+                  onChange={(e) => {
+                    const nextJenjang = e.target.value;
+                    const nextKelas = (KELAS_BY_JENJANG[nextJenjang] || ['10'])[0];
+                    setRegForm({
+                      ...regForm,
+                      jenjang: nextJenjang,
+                      kelas: nextKelas,
+                      jurusan: nextJenjang === 'SMK' ? 'TKJ' : 'Semua Jurusan'
+                    });
+                  }}
+                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                >
+                  <option value="SMP">SMP</option>
+                  <option value="SMA">SMA</option>
+                  <option value="SMK">SMK</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Kelas:
+                </label>
+                <select
+                  value={regForm.kelas}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, kelas: e.target.value })
+                  }
+                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                >
+                  {availableKelasOptions.map((kls) => (
+                    <option key={kls} value={kls}>
+                      Kelas {kls}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-cinzel text-[#D4AF37] mb-1">
+                  Jurusan:
+                </label>
+                <select
+                  value={regForm.jenjang === 'SMK' ? regForm.jurusan : 'Semua Jurusan'}
+                  disabled={regForm.jenjang !== 'SMK'}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, jurusan: e.target.value })
+                  }
+                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] disabled:opacity-50"
+                >
+                  {regForm.jenjang === 'SMK' ? (
+                    SMK_JURUSAN_OPTIONS.map((jur) => (
+                      <option key={jur} value={jur}>
+                        {jur}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="Semua Jurusan">Umum / Nasional</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500 text-[#12100E] hover:bg-emerald-400 transition-all flex items-center justify-center gap-2 shadow-lg mt-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Daftarkan Akun &amp; Masuk</span>
+            </button>
+          </form>
+        )}
+
+        {/* TAB 3: QUICK CHARACTER PICK */}
         {activeTab === 'quick' && (
           <div className="space-y-3">
             <p className="text-[11px] text-[#A89F91] text-center mb-2">
-              Klik salah satu peran di bawah untuk langsung menguji antarmuka dan hak akses khusus:
+              Klik salah satu akun demo di bawah untuk berpindah role secara instan:
             </p>
 
             {/* Admin Card */}
             <button
               onClick={() => handleQuickLogin(PRESET_USERS.admin)}
               className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser.role === 'admin'
+                currentUser?.role === 'admin'
                   ? 'bg-amber-500/20 border-amber-500'
                   : 'bg-black/30 border-white/10 hover:border-amber-500/60 hover:bg-white/5'
               }`}
@@ -191,14 +508,11 @@ export default function GatekeeperAuthModal({
                       {PRESET_USERS.admin.name}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
-                      ADMIN
+                      @{PRESET_USERS.admin.username}
                     </span>
                   </div>
                   <p className="text-xs text-[#A89F91]">
                     {PRESET_USERS.admin.title} • {PRESET_USERS.admin.class}
-                  </p>
-                  <p className="text-[10px] text-amber-400/80 mt-0.5">
-                    Akses: Verifikasi Pinjaman, Kelola Stok, Tambah Grimoire
                   </p>
                 </div>
               </div>
@@ -209,7 +523,7 @@ export default function GatekeeperAuthModal({
             <button
               onClick={() => handleQuickLogin(PRESET_USERS.guru)}
               className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser.role === 'guru'
+                currentUser?.role === 'guru'
                   ? 'bg-sky-500/20 border-sky-500'
                   : 'bg-black/30 border-white/10 hover:border-sky-500/60 hover:bg-white/5'
               }`}
@@ -224,14 +538,11 @@ export default function GatekeeperAuthModal({
                       {PRESET_USERS.guru.name}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30">
-                      GURU
+                      @{PRESET_USERS.guru.username}
                     </span>
                   </div>
                   <p className="text-xs text-[#A89F91]">
                     {PRESET_USERS.guru.title} • {PRESET_USERS.guru.class}
-                  </p>
-                  <p className="text-[10px] text-sky-400/80 mt-0.5">
-                    Akses: Formulir Pinjam Buku Kelas &amp; Dashboard Permintaan
                   </p>
                 </div>
               </div>
@@ -242,7 +553,7 @@ export default function GatekeeperAuthModal({
             <button
               onClick={() => handleQuickLogin(PRESET_USERS.siswa)}
               className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
-                currentUser.role === 'siswa'
+                currentUser?.role === 'siswa'
                   ? 'bg-emerald-500/20 border-emerald-500'
                   : 'bg-black/30 border-white/10 hover:border-emerald-500/60 hover:bg-white/5'
               }`}
@@ -257,14 +568,11 @@ export default function GatekeeperAuthModal({
                       {PRESET_USERS.siswa.name}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                      SISWA
+                      @{PRESET_USERS.siswa.username}
                     </span>
                   </div>
                   <p className="text-xs text-[#A89F91]">
-                    ID: {PRESET_USERS.siswa.guildId} • {PRESET_USERS.siswa.class}
-                  </p>
-                  <p className="text-[10px] text-emerald-400/80 mt-0.5">
-                    Akses: Pinjam Fisik (Approval), Baca E-Grimoire Digital, Klaim XP
+                    NISN: {PRESET_USERS.siswa.nisn} • {PRESET_USERS.siswa.class}
                   </p>
                 </div>
               </div>
@@ -273,75 +581,11 @@ export default function GatekeeperAuthModal({
           </div>
         )}
 
-        {/* TAB 2: EMAIL & PASSWORD LOGIN */}
-        {activeTab === 'email' && (
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                Alamat Email Akademi:
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="archivist@academy.grand / guru / arya..."
-                  className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-              <p className="text-[10px] text-[#A89F91] mt-1">
-                Demo hint: Masukkan kata kunci "admin", "guru", atau "arya".
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-cinzel text-[#D4AF37] mb-1">
-                Kunci Sandi Rahasia:
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#A89F91] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 rounded-xl font-cinzel font-bold text-xs bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg"
-            >
-              {isLoading ? (
-                <span>Membuka Segel Gerbang...</span>
-              ) : (
-                <>
-                  <KeyRound className="w-4 h-4" />
-                  <span>Buka Gerbang (Masuk)</span>
-                </>
-              )}
-            </button>
-          </form>
-        )}
-
         {/* Footer info */}
         <div className="mt-6 pt-4 border-t border-[#D4AF37]/20 flex items-center justify-between text-[11px] text-[#A89F91]">
-          <span>Status Supabase Auth:</span>
-          <span className={isSupabaseConfigured ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
-            {isSupabaseConfigured ? 'Online Cloud' : 'Local Fallback State'}
+          <span>Sistem Autentikasi:</span>
+          <span className="text-emerald-400 font-semibold">
+            PostgreSQL + Prisma (HTTP-Only Cookie JWT)
           </span>
         </div>
       </div>

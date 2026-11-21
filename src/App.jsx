@@ -34,7 +34,7 @@ import {
   BookMarked
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+import { api } from './lib/apiClient';
 import RoleSwitcherBar, { PRESET_USERS } from './components/RoleSwitcherBar';
 import GatekeeperAuthModal from './components/GatekeeperAuthModal';
 import EGrimoireReaderModal from './components/EGrimoireReaderModal';
@@ -45,11 +45,15 @@ import ScholarsSanctumView from './components/ScholarsSanctumView';
 import FullScreenPdfViewerModal from './components/FullScreenPdfViewerModal';
 import ReadingLogModal from './components/ReadingLogModal';
 import ClassLeaderboard from './components/ClassLeaderboard';
-import { DIGITAL_TOMES_CATALOG, getDigitalTomeContent } from './data/digitalTomesContent';
-import { SAMPLE_MEMBERS } from './data/sampleMembers';
-import { buildInitialLoans } from './data/sampleLoans';
-import { buildInitialReadingLogs } from './data/sampleReadingLogs';
-import { enrichBook } from './utils/libraryUtils';
+import { getDigitalTomeContent } from './data/digitalTomesContent';
+import {
+  enrichBook,
+  JENJANG_OPTIONS,
+  KELAS_BY_JENJANG,
+  SMK_JURUSAN_OPTIONS,
+  JENIS_BUKU_OPTIONS,
+  matchesCurriculumFilter
+} from './utils/libraryUtils';
 import {
   addDays,
   formatDateID,
@@ -64,33 +68,18 @@ import {
   normalizeClassName
 } from './utils/readingUtils';
 
-const LOCAL_STORAGE_PREFIX = 'alchemist-archive:v2';
-
-function readStoredState(key, fallback) {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(`${LOCAL_STORAGE_PREFIX}:${key}`);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-  } catch {
-    // Data lokal rusak atau diblokir; gunakan data contoh.
-  }
-  return fallback;
-}
-
-function writeStoredState(key, value) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(`${LOCAL_STORAGE_PREFIX}:${key}`, JSON.stringify(value));
-  } catch {
-    // Kuota penuh / mode privat: abaikan, aplikasi tetap berjalan.
-  }
-}
-
 function getIdentityKeys(user) {
   if (!user) return [];
-  return [user.id, user.profileId, user.studentId, user.guildId, user.cardCode, user.name, user.email]
+  return [
+    user.id,
+    user.profileId,
+    user.studentId,
+    user.guildId,
+    user.cardCode,
+    user.nisn,
+    user.username,
+    user.name
+  ]
     .filter(Boolean)
     .map((value) => String(value).toLowerCase());
 }
@@ -98,7 +87,14 @@ function getIdentityKeys(user) {
 function isLoanOwnedByUser(loan, user) {
   const keys = getIdentityKeys(user);
   if (keys.length === 0 || !loan) return false;
-  return [loan.profileId, loan.borrowerCard, loan.borrowerName, loan.requesterName, loan.requesterEmail]
+  return [
+    loan.profileId,
+    loan.borrowerCard,
+    loan.borrowerNisn,
+    loan.borrowerName,
+    loan.requesterName,
+    loan.requesterUsername
+  ]
     .filter(Boolean)
     .some((value) => keys.includes(String(value).toLowerCase()));
 }
@@ -236,439 +232,6 @@ const SCHOOLS_OF_LORE = [
 ];
 
 // ==========================================
-// 12 INDONESIAN SCHOOL LIBRARY BOOKS (STEP 4)
-// ==========================================
-const INITIAL_BOOKS = [
-  {
-    id: 'book-1',
-    title: 'Bumi',
-    subtitle: 'Chronicles of the Parallel Clan',
-    author: 'Tere Liye',
-    category: 'Bards Tales',
-    categoryLabel: "Bard's Tales (Fiksi & Sastra)",
-    rating: 4.9,
-    xpReward: 120,
-    pages: 440,
-    isbn: '978-602-03-0112-9',
-    shelf: 'Menara Barat • Rak Sastra Nusantara A1',
-    status: 'available',
-    available: true,
-    totalStock: 5,
-    availableStock: 3,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-1'],
-    popular: true,
-    coverRune: '☽',
-    coverGradient: 'from-indigo-950 via-purple-900 to-slate-900',
-    accentColor: '#8B5CF6',
-    ingredients: ['wind', 'shadow', 'ember'],
-    synopsis:
-      'Kisah Raib, murid SMA yang mampu menghilang dengan menutup wajahnya dengan kedua telapak tangan. Bersama Seli yang mengendalikan petir dan Ali sang jenius yang menyembunyikan intelek luar biasa, mereka terlempar melintasi portal menuju Klan Bulan, mengungkap konspirasi purba Tamus.',
-    reviews: [
-      {
-        id: 'r1',
-        user: 'Nadia • Apprentice Kelas X',
-        rating: 5,
-        date: '3 hari lalu',
-        comment: 'Dunia paralelnya terasa hidup sekali! Cocok buat yang suka petualangan sihir modern.'
-      },
-      {
-        id: 'r2',
-        user: 'Dimas • Adept Scholar XI',
-        rating: 5,
-        date: '1 minggu lalu',
-        comment: 'Karakter Ali benar-benar definisi Artificer sejati. Wajib baca!'
-      }
-    ]
-  },
-  {
-    id: 'book-2',
-    title: 'Laskar Pelangi',
-    subtitle: 'Scroll of the Ten Belitung Scholars',
-    author: 'Andrea Hirata',
-    category: 'Bards Tales',
-    categoryLabel: "Bard's Tales (Fiksi & Sastra)",
-    rating: 5.0,
-    xpReward: 130,
-    pages: 529,
-    isbn: '978-979-3062-79-2',
-    shelf: 'Menara Barat • Rak Sastra Nusantara A2',
-    status: 'available',
-    available: true,
-    totalStock: 6,
-    availableStock: 4,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-2'],
-    popular: true,
-    coverRune: '🜂',
-    coverGradient: 'from-amber-950 via-orange-900 to-stone-900',
-    accentColor: '#F59E0B',
-    ingredients: ['ember', 'wisdom'],
-    synopsis:
-      'Perjuangan sepuluh anak di Pulau Belitung yang menimba ilmu di sekolah Muhammadiyah yang nyaris roboh bersama guru inspiratif Ibu Muslimah. Sebuah grimoire tentang mimpi, persahabatan, dan ketekunan tanpa batas.',
-    reviews: [
-      {
-        id: 'r3',
-        user: 'Raka • Scholar Kelas XII',
-        rating: 5,
-        date: '5 hari lalu',
-        comment: 'Membaca kisah Lintang membuat semangat belajarku langsung naik 200%!'
-      }
-    ]
-  },
-  {
-    id: 'book-3',
-    title: "Harry Potter & the Philosopher's Stone",
-    subtitle: 'The Alchemist Prophecy of Hogwarts',
-    author: 'J.K. Rowling',
-    category: 'Bards Tales',
-    categoryLabel: "Bard's Tales (Fiksi & Sastra)",
-    rating: 4.9,
-    xpReward: 140,
-    pages: 384,
-    isbn: '978-602-03-0305-5',
-    shelf: 'Menara Barat • Rak Fantasi Klasik B1',
-    status: 'borrowed',
-    available: true,
-    totalStock: 4,
-    availableStock: 2,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-3'],
-    popular: true,
-    coverRune: '✦',
-    coverGradient: 'from-rose-950 via-red-950 to-neutral-950',
-    accentColor: '#EF4444',
-    ingredients: ['shadow', 'wind', 'wisdom'],
-    synopsis:
-      'Harry Potter mengetahui bahwa ia adalah penyihir dan diundang ke Sekolah Sihir Hogwarts. Di sana ia mempelajari rahasia Batu Bertuah—artefak alkimia purba karya Nicolas Flamel yang mampu mengubah logam menjadi emas murni serta memberikan keabadian.',
-    reviews: [
-      {
-        id: 'r4',
-        user: 'Arya Pendragon • Scholar',
-        rating: 5,
-        date: 'Sedang dipinjam',
-        comment: 'Konsep ramuan alkimia Snape dan Batu Bertuah Flamel luar biasa menarik!'
-      }
-    ]
-  },
-  {
-    id: 'book-4',
-    title: 'Fisika Dasar: Mekanika & Termodinamika',
-    subtitle: 'Laws of Celestial & Kinetic Forces',
-    author: 'Halliday, Resnick & Walker',
-    category: 'Alchemy',
-    categoryLabel: 'Alchemy (Sains & Misteri)',
-    rating: 4.7,
-    xpReward: 160,
-    pages: 680,
-    isbn: '978-979-075-812-4',
-    shelf: 'Menara Timur • Meja Eksperimen Fisika A1',
-    status: 'borrowed',
-    available: false,
-    totalStock: 4,
-    availableStock: 0,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-4'],
-    popular: true,
-    coverRune: '☉',
-    coverGradient: 'from-emerald-950 via-teal-950 to-zinc-950',
-    accentColor: '#10B981',
-    ingredients: ['spark', 'craft'],
-    synopsis:
-      'Prinsip fundamental gerak partikel, hukum kekekalan energi mekanik, dinamika fluida, hingga hukum termodinamika semesta. Intisari ilmu bagi alkemis yang ingin menguasai gaya-gaya alam.',
-    reviews: [
-      {
-        id: 'r5',
-        user: 'Gilang • Peneliti Muda XII',
-        rating: 5,
-        date: '2 minggu lalu',
-        comment: 'Soal-soalnya menantang logika, penjelasannya sangat mendalam.'
-      }
-    ]
-  },
-  {
-    id: 'book-5',
-    title: 'Biologi Seluler & Genetika Molekuler',
-    subtitle: 'Codex of Living Transmutations',
-    author: 'Neil A. Campbell & Jane Reece',
-    category: 'Alchemy',
-    categoryLabel: 'Alchemy (Sains & Misteri)',
-    rating: 4.8,
-    xpReward: 155,
-    pages: 620,
-    isbn: '978-979-075-430-0',
-    shelf: 'Menara Timur • Rak Herbarium Bio B2',
-    status: 'available',
-    available: true,
-    totalStock: 5,
-    availableStock: 3,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'Biologi Seluler & Genetika Molekuler', author: 'Neil A. Campbell', category: 'Alchemy' }),
-    popular: false,
-    coverRune: '🜁',
-    coverGradient: 'from-green-950 via-emerald-950 to-neutral-950',
-    accentColor: '#10B981',
-    ingredients: ['spark', 'wisdom'],
-    synopsis:
-      'Eksplorasi kode kehidupan di dalam heliks ganda DNA, sintesis protein seluler, pembelahan mitosis-meiosis, serta rekayasa genetika modern yang menjembatani sains dengan transmutasi biologis.',
-    reviews: [
-      {
-        id: 'r6',
-        user: 'Citra • Tim Olimpiade Bio',
-        rating: 5,
-        date: '4 hari lalu',
-        comment: 'Ilustrasi membran sel dan replikasi DNA sangat jernih.'
-      }
-    ]
-  },
-  {
-    id: 'book-6',
-    title: 'Struktur Data & Algoritma Dasar',
-    subtitle: 'Scroll of Computational Sigils',
-    author: 'Rinaldi Munir',
-    category: 'Artificers Craft',
-    categoryLabel: "Artificer's Craft (Teknologi & Koding)",
-    rating: 4.8,
-    xpReward: 145,
-    pages: 410,
-    isbn: '978-602-8758-87-1',
-    shelf: 'Ruang Artificer • Meja Kode Kriptik D1',
-    status: 'available',
-    available: true,
-    totalStock: 4,
-    availableStock: 2,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-6'],
-    popular: true,
-    coverRune: '✧',
-    coverGradient: 'from-cyan-950 via-blue-950 to-neutral-950',
-    accentColor: '#06B6D4',
-    ingredients: ['craft', 'spark'],
-    synopsis:
-      'Fondasi logika komputasi: algoritma rekursif, pengurutan quicksort, pohon biner (Binary Trees), dan graf. Ditulis dengan pendekatan bertahap yang menempa ketajaman logika para calon arsitek perangkat lunak.',
-    reviews: [
-      {
-        id: 'r7',
-        user: 'Farhan • Klub Robotik X',
-        rating: 5,
-        date: '6 hari lalu',
-        comment: 'Wajib dipelajari kalau mau paham dasar logika pemrograman terstruktur.'
-      }
-    ]
-  },
-  {
-    id: 'book-7',
-    title: 'Atomic Habits',
-    subtitle: 'Transmutation of Small Deeds',
-    author: 'James Clear',
-    category: 'Philosophy',
-    categoryLabel: 'Philosophy (Filsafat & Budi Pekerti)',
-    rating: 4.9,
-    xpReward: 125,
-    pages: 352,
-    isbn: '978-602-06-3317-6',
-    shelf: 'Aula Utama • Rak Pengembangan Diri C4',
-    status: 'available',
-    available: true,
-    totalStock: 6,
-    availableStock: 5,
-    hasDigital: true,
-    digitalContent: DIGITAL_TOMES_CATALOG['book-7'],
-    popular: true,
-    coverRune: '🜂',
-    coverGradient: 'from-amber-950 via-yellow-950 to-stone-950',
-    accentColor: '#D4AF37',
-    ingredients: ['craft', 'ember'],
-    synopsis:
-      'Perubahan kecil 1% setiap hari yang berlipat ganda menjadi hasil luar biasa. Sistem praktis membangun kebiasaan baik, memutus rantai kebiasaan buruk, dan menguasai disiplin diri dalam menuntut ilmu.',
-    reviews: [
-      {
-        id: 'r8',
-        user: 'Anisa • Dewan Ambalan XI',
-        rating: 5,
-        date: '1 hari lalu',
-        comment: 'Konsep 1% better every day sangat mengubah cara saya membagi waktu belajar.'
-      }
-    ]
-  },
-  {
-    id: 'book-8',
-    title: 'Laut Bercerita',
-    subtitle: 'Voices from the Depths of Truth',
-    author: 'Leila S. Chudori',
-    category: 'Ancient Lore',
-    categoryLabel: 'Ancient Lore (Sejarah & Peradaban)',
-    rating: 4.9,
-    xpReward: 135,
-    pages: 394,
-    isbn: '978-602-424-694-5',
-    shelf: 'Menara Barat • Rak Sejarah & Sastra B3',
-    status: 'available',
-    available: true,
-    totalStock: 4,
-    availableStock: 3,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'Laut Bercerita', author: 'Leila S. Chudori', category: 'Ancient Lore' }),
-    popular: true,
-    coverRune: '🜃',
-    coverGradient: 'from-blue-950 via-slate-900 to-indigo-950',
-    accentColor: '#38BDF8',
-    ingredients: ['wisdom', 'shadow', 'ember'],
-    synopsis:
-      'Kronik emosional aktivis mahasiswa era 1998 yang diculik dan dihilangkan. Bagian pertama disuarakan oleh Biru Laut dari dasar samudera, bagian kedua diisi oleh Asmara Jati yang mencari kepastian keluarganya.',
-    reviews: [
-      {
-        id: 'r9',
-        user: 'Bagas • Ekskul Jurnalistik XII',
-        rating: 5,
-        date: '3 hari lalu',
-        comment: 'Sangat menyentuh hati. Mengajarkan arti keberanian memperjuangkan keadilan.'
-      }
-    ]
-  },
-  {
-    id: 'book-9',
-    title: 'Filosofi Teras',
-    subtitle: 'Stoic Armor of the Young Mind',
-    author: 'Henry Manampiring',
-    category: 'Philosophy',
-    categoryLabel: 'Philosophy (Filsafat & Budi Pekerti)',
-    rating: 4.8,
-    xpReward: 120,
-    pages: 346,
-    isbn: '978-602-412-518-9',
-    shelf: 'Aula Utama • Rak Filsafat Populer C2',
-    status: 'available',
-    available: true,
-    totalStock: 5,
-    availableStock: 4,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'Filosofi Teras', author: 'Henry Manampiring', category: 'Philosophy' }),
-    popular: false,
-    coverRune: '🜃',
-    coverGradient: 'from-stone-900 via-neutral-900 to-amber-950',
-    accentColor: '#D4AF37',
-    ingredients: ['wisdom', 'spark'],
-    synopsis:
-      'Penerapan filsafat Stoa kuno Yunani-Romawi yang disesuaikan untuk generasi muda Indonesia menghadapi kekhawatiran, overthinking, dan emosi negatif melalui dikotomi kendali mental.',
-    reviews: [
-      {
-        id: 'r10',
-        user: 'Maya • Konselor Sebaya XI',
-        rating: 5,
-        date: '1 minggu lalu',
-        comment: 'Membantu sekali meredakan cemas saat musim ujian sekolah!'
-      }
-    ]
-  },
-  {
-    id: 'book-10',
-    title: 'Kimia Organik & Reaksi Transmutasi Zat',
-    subtitle: 'Handbook of Carbon Alchemy',
-    author: 'Fessenden & Fessenden',
-    category: 'Alchemy',
-    categoryLabel: 'Alchemy (Sains & Misteri)',
-    rating: 4.7,
-    xpReward: 165,
-    pages: 580,
-    isbn: '978-979-075-920-6',
-    shelf: 'Menara Timur • Meja Tabung Reaksi B3',
-    status: 'borrowed',
-    available: false,
-    totalStock: 3,
-    availableStock: 0,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'Kimia Organik & Reaksi Transmutasi Zat', author: 'Fessenden & Fessenden', category: 'Alchemy' }),
-    popular: false,
-    coverRune: '☉',
-    coverGradient: 'from-amber-950 via-yellow-950 to-neutral-950',
-    accentColor: '#D4AF37',
-    ingredients: ['spark', 'craft'],
-    synopsis:
-      'Membongkar struktur rantai hidrokarbon, ikatan kovalen molekul, dan reaksi esterifikasi layaknya alkemis yang mengubah intisari zat menjadi senyawa baru penuh khasiat.',
-    reviews: [
-      {
-        id: 'r11',
-        user: 'Tito • Scholar XI',
-        rating: 5,
-        date: '5 hari lalu',
-        comment: 'Diagram mekanismenya bikin rumus kimia organik jadi gampang diingat.'
-      }
-    ]
-  },
-  {
-    id: 'book-11',
-    title: 'The Adventures of Sherlock Holmes',
-    subtitle: 'The Art of Deductive Scrying',
-    author: 'Arthur Conan Doyle',
-    category: 'Bards Tales',
-    categoryLabel: "Bard's Tales (Fiksi & Sastra)",
-    rating: 4.9,
-    xpReward: 125,
-    pages: 350,
-    isbn: '978-602-03-2415-9',
-    shelf: 'Menara Barat • Rak Detektif & Misteri A7',
-    status: 'available',
-    available: true,
-    totalStock: 5,
-    availableStock: 3,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', category: 'Bards Tales' }),
-    popular: true,
-    coverRune: '☽',
-    coverGradient: 'from-slate-950 via-zinc-900 to-indigo-950',
-    accentColor: '#8B5CF6',
-    ingredients: ['shadow', 'craft', 'wind'],
-    synopsis:
-      'Kumpulan kasus legendaris Sherlock Holmes bersama Dr. Watson di London era Victoria. Pelajaran ketajaman observasi, logika deduktif murni, dan penguraian teka-teki kriminal terumit.',
-    reviews: [
-      {
-        id: 'r12',
-        user: 'Tania • Klub Sastra XII',
-        rating: 5,
-        date: '1 minggu lalu',
-        comment: 'Melihat cara Holmes mengamati detail kecil adalah sihir logika murni!'
-      }
-    ]
-  },
-  {
-    id: 'book-12',
-    title: 'Sapiens: Riwayat Singkat Umat Manusia',
-    subtitle: 'Genesis of Mortal Civilizations',
-    author: 'Yuval Noah Harari',
-    category: 'Ancient Lore',
-    categoryLabel: 'Ancient Lore (Sejarah & Peradaban)',
-    rating: 4.8,
-    xpReward: 150,
-    pages: 525,
-    isbn: '978-602-424-416-3',
-    shelf: 'Aula Kuno • Rak Sejarah Dunia C3',
-    status: 'borrowed',
-    available: true,
-    totalStock: 6,
-    availableStock: 4,
-    hasDigital: true,
-    digitalContent: getDigitalTomeContent({ title: 'Sapiens: Riwayat Singkat Umat Manusia', author: 'Yuval Noah Harari', category: 'Ancient Lore' }),
-    popular: true,
-    coverRune: '🜃',
-    coverGradient: 'from-yellow-950 via-amber-900 to-neutral-950',
-    accentColor: '#D4AF37',
-    ingredients: ['wisdom', 'spark', 'craft'],
-    synopsis:
-      'Bagaimana Homo sapiens berhasil mendominasi planet Bumi, membangun kerajaan raksasa, menciptakan tatanan mitos uang dan hukum, serta membentuk sejarah manusia dari zaman berburu hingga era kecerdasan buatan.',
-    reviews: [
-      {
-        id: 'r13',
-        user: 'Arya Pendragon • Scholar',
-        rating: 5,
-        date: 'Sedang dipinjam',
-        comment: 'Membuka wawasan baru tentang bagaimana mitos dan kerja sama membentuk peradaban.'
-      }
-    ]
-  }
-];
-
-// ==========================================
 // GUILD QUESTS & UNLOCKABLE BADGES
 // ==========================================
 const INITIAL_QUESTS = [
@@ -761,17 +324,6 @@ const INITIAL_BADGES = [
   }
 ];
 
-// Koleksi awal diperkaya dengan kode buku, nomor panggil (DDC), dan barcode
-// agar label rak serta pemindaian langsung berfungsi pada data contoh.
-const ENRICHED_INITIAL_BOOKS = INITIAL_BOOKS.map((book, index) => enrichBook(book, index));
-
-// Sirkulasi contoh: tanggal dihitung relatif terhadap hari ini sehingga
-// status aktif, H-1, dan terlambat langsung terlihat saat aplikasi dibuka.
-const INITIAL_LOANS = buildInitialLoans(ENRICHED_INITIAL_BOOKS);
-
-// Jurnal refleksi literasi contoh untuk dashboard siswa & guru.
-const INITIAL_READING_LOGS = buildInitialReadingLogs(ENRICHED_INITIAL_BOOKS);
-
 // Helper: Rank progression based on XP
 function getScholarRank(xp) {
   if (xp >= 800) {
@@ -828,33 +380,24 @@ export default function App() {
   // Navigation: 'hall' | 'mixer' | 'vault' | 'sanctum' | 'mentor' | 'archivist'
   const [activeTab, setActiveTab] = useState('hall');
 
-  // 3-Role Authentication State (Admin, Guru, Siswa)
-  const [currentUser, setCurrentUser] = useState(PRESET_USERS.siswa);
+  // 3-Role Authentication State (Admin, Guru, Siswa) via PostgreSQL HTTP-Only Cookie
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isGatekeeperOpen, setIsGatekeeperOpen] = useState(false);
   const [readingBook, setReadingBook] = useState(null);
 
-  // Application & Student Gamification State
-  const [books, setBooks] = useState(() =>
-    readStoredState('books', ENRICHED_INITIAL_BOOKS).map((book, index) =>
-      enrichBook(book, index)
-    )
-  );
-  const [studentXp, setStudentXp] = useState(450);
+  // PostgreSQL + Prisma Live State
+  const [books, setBooks] = useState([]);
+  const [catalogBooks, setCatalogBooks] = useState([]);
+  const [studentXp, setStudentXp] = useState(0);
   const [potionsBrewedCount, setPotionsBrewedCount] = useState(128);
-  const [booksReadCount, setBooksReadCount] = useState(2);
+  const [booksReadCount, setBooksReadCount] = useState(0);
   const [quests, setQuests] = useState(INITIAL_QUESTS);
   const [badges, setBadges] = useState(INITIAL_BADGES);
-
-  // Sample member roster (students & teachers) for barcode quick loans.
-  const [members] = useState(SAMPLE_MEMBERS);
-
-  // Unified Loans Circulation State (Pending, Approved, Rejected, Returned)
-  const [loans, setLoans] = useState(() => readStoredState('loans', INITIAL_LOANS));
-
-  // GLS Reading Logs (jurnal refleksi literasi siswa)
-  const [readingLogs, setReadingLogs] = useState(() =>
-    readStoredState('reading_logs', INITIAL_READING_LOGS)
-  );
+  const [members, setMembers] = useState([]);
+  const [loans, setLoans] = useState([]);
+  const [readingLogs, setReadingLogs] = useState([]);
+  const [serverLeaderboard, setServerLeaderboard] = useState([]);
   const [journalBook, setJournalBook] = useState(null);
 
   // Quick loan & bulk import process flags
@@ -873,7 +416,7 @@ export default function App() {
     bookId: '',
     quantity: 1,
     durationDays: 14,
-    className: 'Kelas XI MIPA 1',
+    className: 'SMK Kelas 10 TKJ 1',
     notes: ''
   });
 
@@ -881,14 +424,18 @@ export default function App() {
   const [packageLoanForm, setPackageLoanForm] = useState({
     bookId: '',
     quantity: 30,
-    className: 'Kelas XI MIPA 2',
+    className: 'SMK Kelas 10 TKJ 1',
     lessonHours: 'Jam ke 3-4',
     notes: ''
   });
 
-  // Catalog search & filters
+  // Catalog search & Multi-level Curriculum Filters (SMP, SMA, SMK 3 Jurusan, Umum)
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedJenjang, setSelectedJenjang] = useState('All'); // 'All' | 'SMP' | 'SMA' | 'SMK' | 'Umum'
+  const [selectedKelas, setSelectedKelas] = useState('All'); // 'All' | '7' | '8' | '9' | '10' | '11' | '12' | 'Semua'
+  const [selectedJurusan, setSelectedJurusan] = useState('All'); // 'All' | 'TKJ' | 'BM' | 'TKR/TR' | 'Semua Jurusan'
+  const [selectedJenisBuku, setSelectedJenisBuku] = useState('All'); // 'All' | 'Buku Paket Wajib' | 'Modul Praktik' | 'Fiksi / Novel' | 'Referensi'
   const [availabilityFilter, setAvailabilityFilter] = useState('all'); // 'all' | 'available' | 'out_of_stock'
 
   // Alchemical Mixer state
@@ -907,8 +454,12 @@ export default function App() {
     title: '',
     subtitle: '',
     author: '',
-    category: 'Alchemy',
-    shelf: 'Menara Timur • Rak Alkimia C1',
+    jenjang: 'SMK',
+    kelas: '10',
+    jurusan: 'TKJ',
+    jenisBuku: 'Buku Paket Wajib',
+    category: 'Artificers Craft',
+    shelf: 'Rak SMK Kelas 10 • TKJ',
     kodeBuku: '',
     publisher: '',
     publicationYear: 2024,
@@ -919,14 +470,15 @@ export default function App() {
     pages: 350,
     xpReward: 120,
     isbn: '978-602-000-000-0',
-    totalStock: 5,
-    availableStock: 5,
+    totalStock: 10,
+    availableStock: 10,
     digitalContentText: '',
     synopsis: '',
     ingredients: ['spark', 'craft']
   });
 
-  const [isSeedingSupabase, setIsSeedingSupabase] = useState(false);
+  const [isDatabaseConnected, setIsDatabaseConnected] = useState(false);
+  const [isSyncingDatabase, setIsSyncingDatabase] = useState(false);
   const [toast, setToast] = useState(null);
 
   const showToast = (title, message, type = 'gold') => {
@@ -938,19 +490,6 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 4500);
     return () => clearTimeout(timer);
   }, [toast]);
-
-  // Local Grimoire Mode persistence: books & loans survive page reloads.
-  useEffect(() => {
-    writeStoredState('books', books);
-  }, [books]);
-
-  useEffect(() => {
-    writeStoredState('loans', loans);
-  }, [loans]);
-
-  useEffect(() => {
-    writeStoredState('reading_logs', readingLogs);
-  }, [readingLogs]);
 
   // Unlock Grand Alchemist badge when student reaches 600+ XP
   useEffect(() => {
@@ -1000,22 +539,23 @@ export default function App() {
   );
 
   const currentMonthKey = useMemo(() => getMonthKey(new Date()), []);
-  const currentUserClassName = normalizeClassName(currentUser.class || '');
+  const currentUserClassName = normalizeClassName(currentUser?.class || '');
 
   const studentReadingLogs = useMemo(
     () => readingLogs.filter((log) => isReadingLogOwnedByUser(log, currentUser)),
     [readingLogs, currentUser]
   );
 
-  const classLeaderboard = useMemo(
-    () =>
-      buildClassLeaderboard({
-        loans,
-        readingLogs,
-        monthKey: currentMonthKey
-      }),
-    [loans, readingLogs, currentMonthKey]
-  );
+  const classLeaderboard = useMemo(() => {
+    if (Array.isArray(serverLeaderboard) && serverLeaderboard.length > 0) {
+      return serverLeaderboard;
+    }
+    return buildClassLeaderboard({
+      loans,
+      readingLogs,
+      monthKey: currentMonthKey
+    });
+  }, [serverLeaderboard, loans, readingLogs, currentMonthKey]);
 
   // Dynamic Navigation Tabs according to Role
   const navTabs = useMemo(() => {
@@ -1025,7 +565,7 @@ export default function App() {
       { id: 'vault', label: 'Vault of Tomes', sub: 'Katalog', icon: BookOpen }
     ];
 
-    if (currentUser.role === 'siswa') {
+    if (currentUser?.role === 'siswa') {
       tabs.push({
         id: 'sanctum',
         label: "Scholar's Sanctum",
@@ -1033,7 +573,7 @@ export default function App() {
         icon: Shield,
         badgeCount: studentActiveLoans.length
       });
-    } else if (currentUser.role === 'guru') {
+    } else if (currentUser?.role === 'guru') {
       tabs.push({
         id: 'mentor',
         label: "Mentor's Sanctum",
@@ -1042,7 +582,7 @@ export default function App() {
         badgeCount: teacherLoans.filter((l) => l.status === 'pending' || l.status === 'approved').length,
         isGuru: true
       });
-    } else if (currentUser.role === 'admin') {
+    } else if (currentUser?.role === 'admin') {
       tabs.push({
         id: 'archivist',
         label: "Archivist's Chamber",
@@ -1056,551 +596,234 @@ export default function App() {
     return tabs;
   }, [currentUser, studentActiveLoans.length, teacherLoans, allPendingLoans.length]);
 
-  // Role Switcher Handler
-  const handleSwitchRole = (newUser) => {
-    setCurrentUser(newUser);
+  // Load PostgreSQL data via Prisma REST API
+  const syncDatabaseData = async (activeUser = currentUser, showSuccessToast = false) => {
+    setIsSyncingDatabase(true);
+    try {
+      const [booksRes, leaderboardRes] = await Promise.all([
+        api.getBooks(),
+        api.getLeaderboard()
+      ]);
+      const loadedBooks = booksRes?.books || [];
+      setBooks(loadedBooks);
+      setCatalogBooks(loadedBooks);
+      setServerLeaderboard(leaderboardRes?.leaderboard || []);
+      setIsDatabaseConnected(true);
 
-    // Auto navigate if current tab is not accessible by the new role
-    if (newUser.role === 'admin') {
+      if (activeUser) {
+        const requests = [api.getLoans(), api.getReadingLogs()];
+        const canFetchUsers = activeUser.role === 'admin' || activeUser.role === 'guru';
+        if (canFetchUsers) {
+          requests.push(api.getUsers());
+        }
+        const [loansRes, logsRes, usersRes] = await Promise.all(requests);
+        setLoans(loansRes?.loans || []);
+        setReadingLogs(logsRes?.readingLogs || []);
+        if (canFetchUsers && usersRes?.users) {
+          setMembers(usersRes.users);
+        }
+        setStudentXp(Number(activeUser.xp || 0));
+      } else {
+        setLoans([]);
+        setReadingLogs([]);
+        setMembers([]);
+      }
+
+      if (showSuccessToast) {
+        showToast(
+          'Database PostgreSQL Tersinkron',
+          `${loadedBooks.length} buku & data sirkulasi terbaru telah dimuat dari Neon PostgreSQL.`,
+          'emerald'
+        );
+      }
+    } catch (err) {
+      console.error('Sync database error:', err);
+      setIsDatabaseConnected(false);
+      if (showSuccessToast) {
+        showToast(
+          'Gagal Terhubung ke Server Database',
+          err?.message || 'Periksa server backend & koneksi DATABASE_URL PostgreSQL.',
+          'purple'
+        );
+      }
+    } finally {
+      setIsSyncingDatabase(false);
+    }
+  };
+
+  // Check HTTP-only cookie session on initial load
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const meRes = await api.getMe();
+        const loggedUser = meRes?.user || null;
+        if (!active) return;
+        setCurrentUser(loggedUser);
+        if (loggedUser) {
+          setStudentXp(Number(loggedUser.xp || 0));
+        }
+        await syncDatabaseData(loggedUser, false);
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (active) {
+          await syncDatabaseData(null, false);
+        }
+      } finally {
+        if (active) setIsCheckingAuth(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Re-query /api/books when catalog curriculum/search filters change (Prisma query)
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.getBooks({
+          jenjang: selectedJenjang,
+          kelas: selectedKelas,
+          jurusan: selectedJurusan,
+          jenis_buku: selectedJenisBuku,
+          category: selectedCategory,
+          search: searchQuery
+        });
+        if (!cancelled && Array.isArray(res?.books)) {
+          setCatalogBooks(res.books);
+        }
+      } catch {
+        if (!cancelled) {
+          setCatalogBooks(books);
+        }
+      }
+    }, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    selectedJenjang,
+    selectedKelas,
+    selectedJurusan,
+    selectedJenisBuku,
+    selectedCategory,
+    searchQuery,
+    books
+  ]);
+
+  // Role Switcher & Login Handler
+  const handleSwitchRole = async (targetUser) => {
+    if (!targetUser) return;
+    let authenticatedUser = targetUser;
+
+    // Jika berasal dari tombol Quick Login (memiliki password preset), autentikasi resmi ke POST /api/auth/login
+    if (targetUser.password && !targetUser.dbRole) {
+      try {
+        const res = await api.login({
+          username: targetUser.username,
+          password: targetUser.password
+        });
+        authenticatedUser = res.user;
+      } catch (err) {
+        showToast(
+          'Gagal Berpindah Akun',
+          err?.message || 'Silakan masuk secara manual melalui Gerbang Autentikasi.',
+          'purple'
+        );
+        setIsGatekeeperOpen(true);
+        return;
+      }
+    }
+
+    setCurrentUser(authenticatedUser);
+    setStudentXp(Number(authenticatedUser.xp || 0));
+
+    if (authenticatedUser.role === 'admin') {
       if (activeTab === 'sanctum' || activeTab === 'mentor') {
         setActiveTab('archivist');
       }
-    } else if (newUser.role === 'guru') {
+    } else if (authenticatedUser.role === 'guru') {
       if (activeTab === 'sanctum' || activeTab === 'archivist') {
         setActiveTab('mentor');
       }
-    } else if (newUser.role === 'siswa') {
+    } else if (authenticatedUser.role === 'siswa') {
       if (activeTab === 'archivist' || activeTab === 'mentor') {
         setActiveTab('sanctum');
       }
     }
 
+    await syncDatabaseData(authenticatedUser, false);
+
     showToast(
-      `Role Aktif: ${newUser.name}`,
-      `Kamu kini bertindak sebagai ${newUser.title}. Tampilan dan wewenang telah disesuaikan.`,
-      newUser.role === 'admin' ? 'gold' : newUser.role === 'guru' ? 'purple' : 'emerald'
+      `Sesi Aktif: ${authenticatedUser.name}`,
+      `Masuk ke PostgreSQL sebagai ${authenticatedUser.title} (@${authenticatedUser.username}).`,
+      authenticatedUser.role === 'admin'
+        ? 'gold'
+        : authenticatedUser.role === 'guru'
+          ? 'purple'
+          : 'emerald'
     );
   };
 
-  // ==========================================
-  // SUPABASE DATA SYNC & AUTO-SEEDING
-  // ==========================================
-  const executeSeedSupabase = async (isManual = false) => {
-    if (!isSupabaseConfigured || !supabase) {
-      if (isManual) {
-        showToast(
-          'Supabase Belum Dikonfigurasi',
-          'Isi VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di file .env terlebih dahulu untuk mengaktifkan sinkronisasi cloud.',
-          'purple'
-        );
-      }
-      return;
-    }
-
-    setIsSeedingSupabase(true);
+  const handleLogout = async () => {
     try {
-      // 1. Seed Profile ('ARC-2026-089')
-      await supabase.from('profiles').upsert({
-        id: 'ARC-2026-089',
-        student_id: 'ARC-2026-089',
-        guild_id: 'ARC-2026-089',
-        name: 'Arya Pendragon',
-        academy_class: 'Kelas XI MIPA 2 • Akademi Sains & Arkanum',
-        guild_role: currentRank.title || 'Adept Scholar',
-        xp: studentXp,
-        max_xp: 600,
-        level: currentRank.level || 2,
-        potions_brewed_count: potionsBrewedCount,
-        books_read: booksReadCount,
-        tomes_read_count: booksReadCount,
-        badges: badges
-      });
-
-      // 2. Seed 12 Initial Books with stocks, barcodes, and digital contents
-      for (const b of ENRICHED_INITIAL_BOOKS) {
-        await supabase.from('books').upsert({
-          id: b.id,
-          title: b.title,
-          fantasy_subtitle: b.subtitle,
-          author: b.author,
-          isbn: b.isbn,
-          xp_reward: b.xpReward,
-          school: b.category,
-          school_name: b.categoryLabel,
-          rating: b.rating,
-          pages: b.pages,
-          shelf: b.shelf,
-          status: b.status,
-          available: b.availableStock > 0,
-          total_stock: b.totalStock || 5,
-          available_stock: b.availableStock ?? 3,
-          has_digital: true,
-          digital_content: b.digitalContent || null,
-          ingredients: b.ingredients,
-          synopsis: b.synopsis,
-          featured: b.popular,
-          kode_buku: b.kodeBuku,
-          book_code: b.kodeBuku,
-          ddc: b.ddc,
-          call_number: b.callNumber,
-          barcode: b.barcode,
-          publisher: b.publisher || null,
-          publication_year: b.publicationYear || null,
-          cover_url: b.coverUrl || null,
-          pdf_url: b.pdfUrl || null
-        });
-      }
-
-      // 3. Seed Reviews
-      const allSeedReviews = [];
-      INITIAL_BOOKS.forEach((b) => {
-        (b.reviews || []).forEach((r, idx) => {
-          allSeedReviews.push({
-            id: r.id || `rev-${b.id}-${idx + 1}`,
-            book_id: b.id,
-            profile_id: 'ARC-2026-089',
-            scholar_name: r.user ? r.user.split('•')[0].trim() : 'Scholar',
-            scholar_rank: r.user && r.user.includes('•') ? r.user.split('•')[1].trim() : 'Scholar',
-            book_title: b.title,
-            rating: r.rating || 5,
-            note: r.comment || '',
-            xp_awarded: 75,
-            review_date: new Date().toISOString().split('T')[0]
-          });
-        });
-      });
-
-      for (const rev of allSeedReviews) {
-        await supabase.from('reviews').upsert(rev);
-      }
-
-      // 4. Seed Quests
-      for (const q of INITIAL_QUESTS) {
-        await supabase.from('quests').upsert({
-          id: q.id,
-          title: q.title,
-          subtitle: q.subtitle,
-          category: q.categoryTrigger,
-          xp_reward: q.xpReward,
-          badge_reward: q.badgeName,
-          progress: q.progress,
-          target: q.target,
-          completed: q.progress >= q.target,
-          claimed: q.claimed,
-          description: q.desc
-        });
-      }
-
-      // 5. Seed Loans
-      const { data: existingLoans } = await supabase.from('loans').select('id');
-      if (!existingLoans || existingLoans.length === 0) {
-        for (const l of INITIAL_LOANS) {
-          // loans.id is UUID in Supabase; let the database generate it.
-          await supabase.from('loans').insert({
-            book_id: l.bookId,
-            profile_id: l.borrowerCard === 'ARC-2026-089' ? 'ARC-2026-089' : null,
-            borrower_name: l.borrowerName,
-            requester_name: l.requesterName,
-            requester_role: l.requesterRole,
-            class_name: l.className,
-            quantity: l.quantity,
-            borrowed_date: l.borrowedDateISO || l.borrowedDate,
-            due_date: l.dueDate,
-            status: l.status === 'approved' ? 'approved' : l.status,
-            notes: l.notes,
-            rejection_reason: l.rejectionReason || null,
-            borrower_card: l.borrowerCard || null,
-            borrower_phone: l.borrowerPhone || null,
-            guardian_name: l.guardianName || null,
-            guardian_phone: l.guardianPhone || null,
-            homeroom_name: l.homeroomName || null,
-            homeroom_phone: l.homeroomPhone || null,
-            max_days: l.maxDays || (l.requesterRole === 'guru' ? 14 : 7),
-            is_package: Boolean(l.isPackage),
-            lesson_hours: l.lessonHours || null
-          });
-        }
-      }
-
-      // 6. Seed GLS Reading Logs (jurnal refleksi literasi)
-      for (const log of INITIAL_READING_LOGS) {
-        await supabase.from('reading_logs').upsert(
-          {
-            id: log.id,
-            profile_id: log.profileId || null,
-            student_card: log.studentCard || null,
-            student_name: log.studentName,
-            class_name: log.className,
-            book_id: log.bookId,
-            book_title: log.bookTitle,
-            last_page_read: log.lastPageRead,
-            favorite_quote: log.favoriteQuote,
-            summary: log.summary,
-            word_count: log.wordCount,
-            status: log.status,
-            score: log.score,
-            feedback: log.feedback || null,
-            graded_at: log.gradedAt || null,
-            graded_by: log.gradedBy || null,
-            created_at: log.createdAt,
-            updated_at: log.updatedAt
-          },
-          { onConflict: 'id' }
-        );
-      }
-
-      if (isManual) {
-        showToast(
-          'Inisialisasi Cloud Selesai!',
-          '12 Grimoire, stok eksemplar, sirkulasi pinjaman, dan profil serikat berhasil disinkronkan ke Supabase.',
-          'emerald'
-        );
-      }
-    } catch (err) {
-      console.error('Seed Supabase error:', err);
-      if (isManual) {
-        showToast('Gagal Melakukan Seed', 'Periksa koneksi Supabase atau jalankan skema SQL di Dashboard.', 'purple');
-      }
-    } finally {
-      setIsSeedingSupabase(false);
+      await api.logout();
+    } catch {
+      // Abaikan error network logout
     }
+    setCurrentUser(null);
+    setStudentXp(0);
+    setLoans([]);
+    setReadingLogs([]);
+    setMembers([]);
+    if (activeTab === 'sanctum' || activeTab === 'mentor' || activeTab === 'archivist') {
+      setActiveTab('hall');
+    }
+    await syncDatabaseData(null, false);
+    showToast('Sesi Berakhir', 'Anda telah keluar. Cookie sesi telah dihapus.', 'gold');
   };
 
-  const fetchFromSupabase = async () => {
-    if (!isSupabaseConfigured || !supabase) return;
-
-    try {
-      // 1. Fetch Books
-      const { data: dbBooks, error: booksErr } = await supabase
-        .from('books')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (booksErr) throw booksErr;
-
-      if (!dbBooks || dbBooks.length === 0) {
-        console.info('Supabase books table is empty. Triggering auto-seed...');
-        await executeSeedSupabase(false);
-        const { data: reloadedBooks } = await supabase.from('books').select('*').order('id', { ascending: true });
-        if (reloadedBooks && reloadedBooks.length > 0) {
-          fetchFromSupabase();
-        }
-        return;
-      }
-
-      // 2. Fetch Reviews
-      const { data: dbReviews } = await supabase
-        .from('reviews')
-        .select('*')
-        .order('review_date', { ascending: false });
-
-      const reviewsByBook = {};
-      (dbReviews || []).forEach((rev) => {
-        if (!reviewsByBook[rev.book_id]) {
-          reviewsByBook[rev.book_id] = [];
-        }
-        reviewsByBook[rev.book_id].push({
-          id: rev.id,
-          user: rev.scholar_name
-            ? `${rev.scholar_name} • ${rev.scholar_rank || 'Scholar'}`
-            : (rev.user || 'Scholar'),
-          rating: rev.rating || 5,
-          date: rev.review_date || 'Baru saja',
-          comment: rev.note || rev.comment || ''
-        });
-      });
-
-      // 3. Fetch Loans
-      const { data: dbLoans } = await supabase
-        .from('loans')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (dbLoans && dbLoans.length > 0) {
-        const mappedLoans = dbLoans.map((l) => ({
-          id: l.id,
-          bookId: l.book_id,
-          bookTitle:
-            l.book_title ||
-            dbBooks.find((b) => b.id === l.book_id)?.title ||
-            books.find((b) => b.id === l.book_id)?.title ||
-            'Grimoire',
-          borrowerName: l.borrower_name || l.requester_name || 'Scholar',
-          requesterName: l.requester_name || l.borrower_name || 'Scholar',
-          requesterRole: l.requester_role || 'siswa',
-          profileId: l.profile_id || l.borrower_card || null,
-          borrowerCard: l.borrower_card || null,
-          borrowerLevel: l.borrower_level || null,
-          borrowerPhone: l.borrower_phone || '',
-          guardianName: l.guardian_name || '',
-          guardianPhone: l.guardian_phone || '',
-          homeroomName: l.homeroom_name || '',
-          homeroomPhone: l.homeroom_phone || '',
-          className: l.class_name || 'Kelas XI MIPA 2',
-          quantity: Number(l.quantity) || 1,
-          isPackage: Boolean(l.is_package),
-          lessonHours: l.lesson_hours || '',
-          borrowedDate: l.borrowed_date ? formatDateID(l.borrowed_date) : 'Hari ini',
-          borrowedDateISO: l.borrowed_date || '',
-          dueDate: l.due_date,
-          daysLeft: computeDaysLeft(l.due_date),
-          maxDays: l.max_days || (l.requester_role === 'guru' ? 14 : 7),
-          status: l.status || 'pending',
-          notes: l.notes || '',
-          rejectionReason: l.rejection_reason || '',
-          returnedAt: l.returned_at ? toISODate(l.returned_at) : null
-        }));
-        setLoans(mappedLoans);
-      }
-
-      // 3b. Fetch GLS Reading Logs
-      const { data: dbReadingLogs, error: readingLogsErr } = await supabase
-        .from('reading_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (readingLogsErr) {
-        console.warn('Supabase reading_logs fetch skipped:', readingLogsErr.message);
-      } else if (dbReadingLogs && dbReadingLogs.length > 0) {
-        setReadingLogs(
-          dbReadingLogs.map((log) => ({
-            id: log.id,
-            studentId: log.student_card || log.profile_id || '',
-            studentCard: log.student_card || '',
-            profileId: log.profile_id || null,
-            studentName: log.student_name || 'Scholar',
-            className: normalizeClassName(log.class_name || ''),
-            bookId: log.book_id,
-            bookTitle:
-              log.book_title ||
-              dbBooks.find((book) => book.id === log.book_id)?.title ||
-              'Grimoire',
-            lastPageRead: Number(log.last_page_read) || 0,
-            favoriteQuote: log.favorite_quote || '',
-            summary: log.summary || '',
-            wordCount: getReadingLogWordCount(log),
-            status: log.status || (log.score !== null ? 'graded' : 'submitted'),
-            score: log.score ?? null,
-            feedback: log.feedback || '',
-            gradedAt: log.graded_at || null,
-            gradedBy: log.graded_by || '',
-            createdAt: log.created_at || new Date().toISOString(),
-            updatedAt: log.updated_at || log.created_at || new Date().toISOString()
-          }))
-        );
-      }
-
-      // Map Books
-      const mappedBooks = dbBooks.map((row) => {
-        const availStock = row.available_stock ?? row.availableStock ?? (row.available ? 3 : 0);
-        const totStock = row.total_stock ?? row.totalStock ?? 5;
-        const isAvail = availStock > 0;
-
-        return {
-          id: row.id,
-          title: row.title,
-          subtitle: row.subtitle || row.fantasy_subtitle || '',
-          author: row.author,
-          category: row.category || row.school || 'Alchemy',
-          categoryLabel:
-            row.category_label ||
-            row.school_name ||
-            (row.category === 'Bards Tales'
-              ? "Bard's Tales (Fiksi & Sastra)"
-              : 'Alchemy (Sains & Misteri)'),
-          rating: Number(row.rating) || 5.0,
-          xpReward: row.xp_reward || 100,
-          pages: row.pages || 350,
-          isbn: row.isbn || '978-602-000-000-0',
-          shelf: row.shelf || 'Menara Arsip',
-          status: isAvail ? 'available' : 'borrowed',
-          available: isAvail,
-          totalStock: totStock,
-          availableStock: availStock,
-          hasDigital: Boolean(row.has_digital ?? true),
-          digitalContent: row.digital_content || DIGITAL_TOMES_CATALOG[row.id] || null,
-          popular: Boolean(row.popular ?? row.featured),
-          coverRune: row.cover_rune || '☉',
-          coverGradient:
-            row.cover_gradient || 'from-emerald-950 via-teal-900 to-slate-950',
-          accentColor: row.accent_color || '#10B981',
-          ingredients: Array.isArray(row.ingredients) ? row.ingredients : ['spark'],
-          synopsis: row.synopsis || '',
-          kodeBuku: row.kode_buku || row.book_code || undefined,
-          ddc: row.ddc || undefined,
-          callNumber: row.call_number || undefined,
-          barcode: row.barcode || row.kode_buku || row.book_code || undefined,
-          publisher: row.publisher || '',
-          publicationYear: row.publication_year || null,
-          coverUrl: row.cover_url || '',
-          pdfUrl: row.pdf_url || '',
-          reviews: reviewsByBook[row.id] || (Array.isArray(row.reviews) ? row.reviews : [])
-        };
-      });
-      setBooks(mappedBooks.map((row, index) => enrichBook(row, index)));
-
-      // 4. Fetch Quests
-      const { data: dbQuests } = await supabase
-        .from('quests')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (dbQuests && dbQuests.length > 0) {
-        setQuests(
-          dbQuests.map((q) => ({
-            id: q.id,
-            title: q.title,
-            subtitle: q.subtitle,
-            desc: q.description || q.desc,
-            xpReward: q.xp_reward || 150,
-            progress: q.progress || 0,
-            target: q.target || 1,
-            claimed: Boolean(q.claimed),
-            badgeName: q.badge_reward || q.badgeName,
-            categoryTrigger: q.category || q.categoryTrigger
-          }))
-        );
-      }
-
-      // 5. Fetch Scholar Profile ('ARC-2026-089')
-      const { data: dbProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .or('guild_id.eq.ARC-2026-089,student_id.eq.ARC-2026-089,id.eq.ARC-2026-089')
-        .maybeSingle();
-
-      if (dbProfile) {
-        if (dbProfile.xp !== undefined) setStudentXp(dbProfile.xp);
-        if (dbProfile.potions_brewed_count !== undefined) {
-          setPotionsBrewedCount(dbProfile.potions_brewed_count);
-        }
-        if (dbProfile.books_read !== undefined) {
-          setBooksReadCount(dbProfile.books_read);
-        } else if (dbProfile.tomes_read_count !== undefined) {
-          setBooksReadCount(dbProfile.tomes_read_count);
-        }
-        if (Array.isArray(dbProfile.badges) && dbProfile.badges.length > 0) {
-          setBadges(dbProfile.badges);
-        }
-      }
-    } catch (err) {
-      console.warn('Supabase fetch failed or tables unseeded; running smoothly in Local Grimoire Mode:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchFromSupabase();
-
-    if (!isSupabaseConfigured || !supabase) return;
-
-    const channel = supabase
-      .channel('grand-archive-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'books' }, () => {
-        fetchFromSupabase();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => {
-        fetchFromSupabase();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reading_logs' }, () => {
-        fetchFromSupabase();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => {
-        fetchFromSupabase();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'quests' }, () => {
-        fetchFromSupabase();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        fetchFromSupabase();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   // ==========================================
-  // HANDLER: APPROVE LOAN (ADMIN ACTION)
+  // HANDLER: APPROVE LOAN (ADMIN ACTION -> POSTGRESQL)
   // ==========================================
   const handleApproveLoan = async (loan) => {
-    const book = books.find((b) => b.id === loan.bookId);
-    if (!book) return;
-
-    const neededQty = loan.quantity || 1;
-    if (book.availableStock < neededQty) {
-      showToast(
-        'Stok Fisik Tidak Cukup',
-        `Buku "${book.title}" hanya tersisa ${book.availableStock} eksemplar di rak, tidak mencukupi permintaan ${neededQty} eksemplar.`,
-        'purple'
-      );
-      return;
-    }
-
-    const newAvailableStock = Math.max(0, book.availableStock - neededQty);
-    const newStatus = newAvailableStock === 0 ? 'borrowed' : 'available';
-
-    // Update book stock & status
-    setBooks((prev) =>
-      prev.map((b) =>
-        b.id === book.id
-          ? {
-              ...b,
-              availableStock: newAvailableStock,
-              status: newStatus,
-              available: newAvailableStock > 0
-            }
-          : b
-      )
-    );
-
-    // Update loan status
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === loan.id
-          ? { ...l, status: 'approved', daysLeft: computeDaysLeft(l.dueDate) }
-          : l
-      )
-    );
-
     try {
-      confetti({
-        particleCount: 65,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#10B981', '#D4AF37', '#8B5CF6']
-      });
-    } catch {}
-
-    showToast(
-      'Peminjaman Disetujui!',
-      `Permintaan ${loan.requesterName} untuk "${book.title}" (${neededQty} eksemplar) telah disetujui. Sisa di rak: ${newAvailableStock}.`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('loans')
-          .update({ status: 'approved' })
-          .eq('id', loan.id);
-
-        await supabase
-          .from('books')
-          .update({
-            available_stock: newAvailableStock,
-            status: newStatus,
-            available: newAvailableStock > 0
-          })
-          .eq('id', book.id);
-      } catch (err) {
-        console.warn('Supabase approve loan error:', err);
+      const res = await api.approveLoan(loan.id);
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
       }
+      if (res.loan) {
+        setLoans((prev) => prev.map((l) => (l.id === res.loan.id ? res.loan : l)));
+      }
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
+      try {
+        confetti({
+          particleCount: 65,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#10B981', '#D4AF37', '#8B5CF6']
+        });
+      } catch {}
+
+      showToast(
+        'Peminjaman Disetujui!',
+        `Permintaan ${loan.requesterName} untuk "${res.book?.title || loan.bookTitle}" (${loan.quantity || 1} eks.) disetujui. Sisa rak: ${res.book?.availableStock ?? '-'}.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Menyetujui Pinjaman', err?.message || 'Stok atau data tidak valid.', 'purple');
     }
   };
 
   // ==========================================
-  // HANDLER: REJECT LOAN (ADMIN ACTION)
+  // HANDLER: REJECT LOAN (ADMIN ACTION -> POSTGRESQL)
   // ==========================================
   const handleRejectLoan = (loan) => {
     setRejectingLoan(loan);
@@ -1613,177 +836,81 @@ export default function App() {
       rejectionReason.trim() ||
       'Stok buku sedang dalam pemeliharaan berkala atau dialokasikan untuk kegiatan kurikulum.';
 
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === rejectingLoan.id
-          ? { ...l, status: 'rejected', rejectionReason: reason }
-          : l
-      )
-    );
-
-    showToast(
-      'Permintaan Peminjaman Ditolak',
-      `Permintaan peminjaman oleh ${rejectingLoan.requesterName} telah ditolak dengan catatan alasan.`,
-      'purple'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('loans')
-          .update({
-            status: 'rejected',
-            rejection_reason: reason
-          })
-          .eq('id', rejectingLoan.id);
-      } catch (err) {
-        console.warn('Supabase reject loan error:', err);
+    try {
+      const res = await api.rejectLoan(rejectingLoan.id, reason);
+      if (res.loan) {
+        setLoans((prev) => prev.map((l) => (l.id === res.loan.id ? res.loan : l)));
       }
+      showToast(
+        'Permintaan Peminjaman Ditolak',
+        `Permintaan peminjaman oleh ${rejectingLoan.requesterName} telah ditolak dan tercatat di PostgreSQL.`,
+        'purple'
+      );
+      setRejectingLoan(null);
+      setRejectionReason('');
+    } catch (err) {
+      showToast('Gagal Menolak Pinjaman', err?.message || 'Coba lagi beberapa saat.', 'purple');
     }
-
-    setRejectingLoan(null);
-    setRejectionReason('');
   };
 
   // ==========================================
-  // HANDLER: VERIFY RETURN (ADMIN ACTION)
+  // HANDLER: VERIFY RETURN (ADMIN ACTION -> POSTGRESQL)
   // ==========================================
   const handleVerifyReturnLoan = async (loan) => {
-    const book = books.find((b) => b.id === loan.bookId);
-    const returnQty = loan.quantity || 1;
-
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === loan.id
-          ? {
-              ...l,
-              status: 'returned',
-              returnedAt: toISODate(new Date())
-            }
-          : l
-      )
-    );
-
-    if (book) {
-      const newAvailable = Math.min(book.totalStock, book.availableStock + returnQty);
-      setBooks((prev) =>
-        prev.map((b) =>
-          b.id === book.id
-            ? {
-                ...b,
-                availableStock: newAvailable,
-                status: 'available',
-                available: true
-              }
-            : b
-        )
-      );
-
-      if (isSupabaseConfigured && supabase) {
-        try {
-          await supabase
-            .from('books')
-            .update({
-              available_stock: newAvailable,
-              status: 'available',
-              available: true
-            })
-            .eq('id', book.id);
-        } catch (err) {
-          console.warn('Supabase return stock sync error:', err);
-        }
-      }
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('loans')
-          .update({
-            status: 'returned',
-            returned_at: new Date().toISOString()
-          })
-          .eq('id', loan.id);
-      } catch (err) {
-        console.warn('Supabase loan return sync error:', err);
-      }
-    }
-
     try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.65 },
-        colors: ['#D4AF37', '#10B981']
-      });
-    } catch {}
+      const res = await api.returnLoan(loan.id);
+      if (res.loan) {
+        setLoans((prev) => prev.map((l) => (l.id === res.loan.id ? res.loan : l)));
+      }
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
+      }
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
 
-    showToast(
-      'Pengembalian Telah Diverifikasi!',
-      `Grimoire "${book?.title || loan.bookTitle}" (${returnQty} eksemplar) telah dikembalikan ke rak oleh Archivist.`,
-      'emerald'
-    );
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.65 },
+          colors: ['#D4AF37', '#10B981']
+        });
+      } catch {}
+
+      showToast(
+        'Pengembalian Telah Diverifikasi!',
+        `Grimoire "${res.book?.title || loan.bookTitle}" (${loan.quantity || 1} eks.) telah dikembalikan ke rak & stok dipulihkan.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Verifikasi Pengembalian', err?.message || 'Coba ulangi.', 'purple');
+    }
   };
 
   // ==========================================
-  // HANDLER: INVENTORY STOCK MANAGER (+ / -)
+  // HANDLER: INVENTORY STOCK MANAGER (+ / - -> POSTGRESQL)
   // ==========================================
   const handleAdjustStock = async (bookId, stockType, delta) => {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
-
-    let newTotal = book.totalStock;
-    let newAvailable = book.availableStock;
-
-    if (stockType === 'total') {
-      newTotal = Math.max(1, book.totalStock + delta);
-      if (newAvailable > newTotal) newAvailable = newTotal;
-    } else if (stockType === 'available') {
-      newAvailable = Math.max(0, Math.min(newTotal, book.availableStock + delta));
-    }
-
-    const newStatus = newAvailable > 0 ? 'available' : 'borrowed';
-
-    setBooks((prev) =>
-      prev.map((b) =>
-        b.id === bookId
-          ? {
-              ...b,
-              totalStock: newTotal,
-              availableStock: newAvailable,
-              status: newStatus,
-              available: newAvailable > 0
-            }
-          : b
-      )
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('books')
-          .update({
-            total_stock: newTotal,
-            available_stock: newAvailable,
-            status: newStatus,
-            available: newAvailable > 0
-          })
-          .eq('id', bookId);
-      } catch (err) {
-        console.warn('Supabase stock adjust error:', err);
+    try {
+      const res = await api.adjustBookStock(bookId, delta, stockType);
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
       }
+    } catch (err) {
+      showToast('Gagal Memperbarui Stok', err?.message || 'Pastikan Anda masuk sebagai Admin.', 'purple');
     }
   };
 
   // ==========================================
-  // HANDLER: QUICK LOAN VIA BARCODE SCANNER (ADMIN ACTION)
+  // HANDLER: QUICK LOAN VIA BARCODE SCANNER (POSTGRESQL)
   // ==========================================
   const handleSubmitQuickLoan = async ({
     member,
     book,
     quantity,
     durationDays,
-    dueDate,
     notes
   }) => {
     if (!member || !book) {
@@ -1803,61 +930,29 @@ export default function App() {
     setIsSubmittingQuickLoan(true);
 
     try {
-      const today = new Date();
       const maxDays = getLoanDurationDays(member.role, durationDays);
-      const finalDueDate = dueDate || toISODate(addDays(today, maxDays));
-      const loanId =
-        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : `loan-${Date.now()}`;
-
-      const newLoan = {
-        id: loanId,
+      const res = await api.quickScanLoan({
+        memberId: member.id,
+        memberCode: member.nisn || member.cardCode || member.username,
         bookId: freshBook.id,
-        bookTitle: freshBook.title,
         bookCode: freshBook.kodeBuku,
-        borrowerName: member.name,
-        requesterName: member.name,
-        requesterEmail: member.email || '',
-        requesterRole: member.role === 'guru' ? 'guru' : 'siswa',
-        profileId: member.cardCode || member.id,
-        borrowerCard: member.cardCode || member.id,
-        borrowerLevel: member.level || '',
-        borrowerPhone: member.phone || '',
-        guardianName: member.guardianName || '',
-        guardianPhone: member.guardianPhone || '',
-        homeroomName: member.homeroomName || '',
-        homeroomPhone: member.homeroomPhone || '',
-        className: member.className || '',
-        classLabel: member.classLabel || '',
         quantity: qty,
-        borrowedDate: formatDateID(today),
-        borrowedDateISO: toISODate(today),
-        dueDate: finalDueDate,
-        daysLeft: maxDays,
-        maxDays,
-        status: 'approved',
+        durasi_hari: maxDays,
         notes:
           notes ||
-          `Peminjaman kilat via pemindaian barcode oleh pustakawan untuk ${member.name}.`
-      };
+          `Peminjaman kilat berbasis NISN (${member.nisn || member.cardCode}) oleh pustakawan untuk ${member.name}.`
+      });
 
-      const newAvailable = Math.max(0, freshBook.availableStock - qty);
-      const newStatus = newAvailable === 0 ? 'borrowed' : 'available';
-
-      setBooks((prev) =>
-        prev.map((b) =>
-          b.id === freshBook.id
-            ? {
-                ...b,
-                availableStock: newAvailable,
-                status: newStatus,
-                available: newAvailable > 0
-              }
-            : b
-        )
-      );
-      setLoans((prev) => [newLoan, ...prev]);
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
+      }
+      if (res.loan) {
+        setLoans((prev) => [res.loan, ...prev]);
+      }
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
 
       try {
         confetti({
@@ -1870,64 +965,23 @@ export default function App() {
 
       showToast(
         'Transaksi Kilat Berhasil!',
-        `"${freshBook.title}" (${qty} eks.) dipinjamkan kepada ${member.name}. Jatuh tempo ${formatDateID(finalDueDate)}. Sisa rak: ${newAvailable}.`,
+        `"${res.book?.title || freshBook.title}" (${qty} eks.) dipinjamkan kepada ${member.name}. Sisa rak: ${res.book?.availableStock ?? '-'}.`,
         'emerald'
       );
 
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data: insertedLoan } = await supabase
-            .from('loans')
-            .insert({
-              book_id: freshBook.id,
-              profile_id: member.cardCode === 'ARC-2026-089' ? 'ARC-2026-089' : null,
-              borrower_name: member.name,
-              requester_name: member.name,
-              requester_role: newLoan.requesterRole,
-              class_name: member.className || null,
-              quantity: qty,
-              notes: newLoan.notes,
-              status: 'approved',
-              borrowed_date: newLoan.borrowedDateISO,
-              due_date: newLoan.dueDate,
-              borrower_card: newLoan.borrowerCard,
-              borrower_phone: newLoan.borrowerPhone || null,
-              guardian_name: newLoan.guardianName || null,
-              guardian_phone: newLoan.guardianPhone || null,
-              homeroom_name: newLoan.homeroomName || null,
-              homeroom_phone: newLoan.homeroomPhone || null,
-              max_days: maxDays
-            })
-            .select()
-            .maybeSingle();
-
-          await supabase
-            .from('books')
-            .update({
-              available_stock: newAvailable,
-              status: newStatus,
-              available: newAvailable > 0
-            })
-            .eq('id', freshBook.id);
-
-          if (insertedLoan?.id) {
-            setLoans((prev) =>
-              prev.map((l) => (l.id === loanId ? { ...l, id: insertedLoan.id } : l))
-            );
-          }
-        } catch (err) {
-          console.warn('Supabase quick loan sync error:', err);
-        }
-      }
-
-      return { ok: true, loan: newLoan };
+      return { ok: true, loan: res.loan };
+    } catch (err) {
+      return {
+        ok: false,
+        message: err?.message || 'Gagal mencatat peminjaman kilat ke PostgreSQL.'
+      };
     } finally {
       setIsSubmittingQuickLoan(false);
     }
   };
 
   // ==========================================
-  // HANDLER: BULK IMPORT FROM EXCEL
+  // HANDLER: BULK IMPORT FROM EXCEL (POSTGRESQL APPEND)
   // ==========================================
   const handleImportBulkBooks = async (importedRows = []) => {
     if (!Array.isArray(importedRows) || importedRows.length === 0) return;
@@ -1935,109 +989,146 @@ export default function App() {
     setIsImportingBooks(true);
 
     try {
-      let addedCount = 0;
-      let updatedCount = 0;
-
-      const normalizedRows = importedRows.map((row, index) => {
-        const enriched = enrichBook(
+      const normalizedRows = importedRows.map((row, index) =>
+        enrichBook(
           {
             ...row,
             id: row.id || row.kodeBuku || `book-import-${Date.now()}-${index}`
           },
           books.length + index
-        );
-        return enriched;
-      });
-
-      normalizedRows.forEach((row) => {
-        const exists = books.some(
-          (item) =>
-            (row.kodeBuku && item.kodeBuku === row.kodeBuku) ||
-            (row.id && item.id === row.id)
-        );
-        if (exists) {
-          updatedCount += 1;
-        } else {
-          addedCount += 1;
-        }
-      });
-
-      setBooks((prev) => {
-        const next = [...prev];
-        normalizedRows.forEach((row) => {
-          const existingIndex = next.findIndex(
-            (item) =>
-              (row.kodeBuku && item.kodeBuku === row.kodeBuku) ||
-              (row.id && item.id === row.id)
-          );
-          if (existingIndex >= 0) {
-            next[existingIndex] = {
-              ...next[existingIndex],
-              ...row,
-              id: next[existingIndex].id,
-              reviews: next[existingIndex].reviews || []
-            };
-          } else {
-            next.unshift(row);
-          }
-        });
-        return next;
-      });
-
-      showToast(
-        'Import Excel Berhasil!',
-        `${addedCount} judul baru ditambahkan dan ${updatedCount} judul diperbarui. Stok, barcode, dan label rak siap digunakan.`,
-        'emerald'
+        )
       );
 
-      if (isSupabaseConfigured && supabase) {
-        try {
-          for (const row of normalizedRows) {
-            await supabase.from('books').upsert({
-              id: row.id,
-              title: row.title,
-              fantasy_subtitle: row.subtitle,
-              author: row.author,
-              isbn: row.isbn,
-              xp_reward: row.xpReward || 100,
-              school: row.category,
-              school_name: row.categoryLabel,
-              rating: row.rating || 5,
-              pages: row.pages || 250,
-              shelf: row.shelf,
-              status: row.status,
-              available: row.available,
-              total_stock: row.totalStock,
-              available_stock: row.availableStock,
-              has_digital: Boolean(row.hasDigital || row.pdfUrl),
-              digital_content: row.digitalContent || [],
-              ingredients: row.ingredients || ['spark'],
-              synopsis: row.synopsis || '',
-              featured: false,
-              kode_buku: row.kodeBuku,
-              book_code: row.kodeBuku,
-              ddc: row.ddc,
-              call_number: row.callNumber,
-              barcode: row.barcode,
-              publisher: row.publisher || null,
-              publication_year: row.publicationYear || null,
-              cover_url: row.coverUrl || null,
-              pdf_url: row.pdfUrl || null
-            });
-          }
-        } catch (err) {
-          console.warn('Supabase bulk import sync error:', err);
-        }
+      const res = await api.bulkImportBooks(normalizedRows);
+      if (Array.isArray(res?.books)) {
+        setBooks(res.books);
+        setCatalogBooks(res.books);
       }
+
+      showToast(
+        'Import Excel Berhasil Disimpan ke PostgreSQL!',
+        `${res?.insertedCount || 0} judul baru ditambahkan dan ${res?.updatedCount || 0} judul diperbarui (stok di-append).`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast(
+        'Import Excel Gagal',
+        err?.message || 'Pastikan format Excel sesuai & Anda login sebagai Admin.',
+        'purple'
+      );
     } finally {
       setIsImportingBooks(false);
     }
   };
 
   // ==========================================
-  // HANDLER: REQUEST PHYSICAL LOAN (SISWA ACTION)
+  // HANDLER: REGISTER & BULK IMPORT MEMBERS (NISN & USERNAME)
+  // ==========================================
+  const handleRegisterMember = async (newMember) => {
+    if (!newMember) return;
+    try {
+      let savedUser = newMember;
+      // Jika dipanggil oleh Admin dari form Anggota (belum ber-dbRole), simpan via POST /api/users
+      if (!newMember.dbRole) {
+        const res = await api.createUser({
+          username: newMember.username,
+          password: newMember.password || 'password123',
+          nama: newMember.name,
+          nisn: newMember.nisn,
+          role: (newMember.role || 'siswa').toUpperCase(),
+          jenjang: newMember.jenjang || 'SMK',
+          kelas: newMember.kelas || '10',
+          jurusan: newMember.jurusan || 'Semua Jurusan',
+          className: newMember.className,
+          cardCode: newMember.cardCode,
+          phone: newMember.phone
+        });
+        savedUser = res.user;
+      }
+
+      setMembers((prev) => {
+        const existingIdx = prev.findIndex(
+          (m) =>
+            m.id === savedUser.id ||
+            (savedUser.nisn && m.nisn === savedUser.nisn) ||
+            (savedUser.username &&
+              m.username &&
+              m.username.toLowerCase() === savedUser.username.toLowerCase())
+        );
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = { ...next[existingIdx], ...savedUser };
+          return next;
+        }
+        return [savedUser, ...prev];
+      });
+
+      if (!newMember.dbRole) {
+        showToast(
+          'Anggota Disimpan ke PostgreSQL',
+          `${savedUser.name} (@${savedUser.username}) siap masuk dan meminjam buku.`,
+          'emerald'
+        );
+      }
+    } catch (err) {
+      showToast(
+        'Gagal Menyimpan Anggota',
+        err?.message || 'Periksa keunikan NISN dan username.',
+        'purple'
+      );
+    }
+  };
+
+  const handleImportBulkMembers = async (importedStudents = []) => {
+    if (!Array.isArray(importedStudents) || importedStudents.length === 0) return;
+
+    try {
+      const res = await api.bulkImportUsers(
+        importedStudents.map((s) => ({
+          username: s.username,
+          password: s.password || 'password123',
+          nama: s.name,
+          nisn: s.nisn,
+          jenjang: s.jenjang || 'SMK',
+          kelas: s.kelas || '10',
+          jurusan: s.jurusan || 'Semua Jurusan',
+          className: s.className,
+          cardCode: s.cardCode,
+          phone: s.phone
+        }))
+      );
+      if (Array.isArray(res?.users)) {
+        setMembers(res.users);
+      }
+
+      showToast(
+        'Import Data Siswa (NISN) Berhasil!',
+        `${res?.insertedCount || 0} siswa baru & ${res?.updatedCount || 0} diperbarui ke PostgreSQL (NISN nol depan terjaga).`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast(
+        'Gagal Import Data Siswa',
+        err?.message || 'Pastikan kolom Excel NISN & Nama terisi benar.',
+        'purple'
+      );
+    }
+  };
+
+  // ==========================================
+  // HANDLER: REQUEST PHYSICAL LOAN (SISWA ACTION -> POSTGRESQL)
   // ==========================================
   const handleRequestStudentLoan = async (book) => {
+    if (!currentUser) {
+      showToast(
+        'Masuk Terlebih Dahulu',
+        'Silakan masuk dengan Username & Password Anda untuk mengajukan peminjaman.',
+        'purple'
+      );
+      setIsGatekeeperOpen(true);
+      return;
+    }
+
     if (book.availableStock <= 0) {
       showToast(
         'Stok Fisik Habis!',
@@ -2063,119 +1154,65 @@ export default function App() {
       return;
     }
 
-    const alreadyRequested = loans.some(
-      (l) =>
-        l.bookId === book.id &&
-        l.requesterRole === 'siswa' &&
-        isLoanOwnedByUser(l, currentUser) &&
-        (l.status === 'pending' || l.status === 'approved')
-    );
+    try {
+      const res = await api.createLoan({
+        bookId: book.id,
+        quantity: 1,
+        durasi_hari: 7,
+        loan_type: 'STUDENT_PHYSICAL',
+        autoApprove: false,
+        notes: 'Pengajuan peminjaman 1 eksemplar fisik buku oleh siswa.'
+      });
 
-    if (alreadyRequested) {
+      if (res.loan) {
+        setLoans((prev) => [res.loan, ...prev]);
+      }
+
+      try {
+        const xpRes = await api.addXp(15);
+        if (xpRes?.user) {
+          setStudentXp(xpRes.user.xp);
+          setCurrentUser(xpRes.user);
+        }
+      } catch {}
+
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
       showToast(
-        'Permintaan Sudah Ada',
-        `Kamu sudah memiliki pengajuan atau sedang meminjam buku "${book.title}".`,
+        'Permintaan Pinjam Terkirim! (+15 XP)',
+        `Pengajuan "${book.title}" telah tersimpan di PostgreSQL dan masuk Antrean Persetujuan Archivist.`,
+        'emerald'
+      );
+
+      try {
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.7 },
+          colors: ['#D4AF37', '#10B981']
+        });
+      } catch {}
+    } catch (err) {
+      showToast(
+        'Pengajuan Pinjam Gagal',
+        err?.message || 'Tidak dapat memproses peminjaman.',
         'purple'
       );
-      return;
-    }
-
-    const todayStr = new Date().toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-    const studentMember =
-      members.find(
-        (m) =>
-          m.cardCode === currentUser.guildId ||
-          m.name === currentUser.name ||
-          m.id === currentUser.id
-      ) || null;
-    const newLoan = {
-      id: `loan-${Date.now()}`,
-      bookId: book.id,
-      bookTitle: book.title,
-      bookCode: book.kodeBuku,
-      borrowerName: currentUser.name,
-      requesterName: currentUser.name,
-      requesterRole: 'siswa',
-      profileId: currentUser.guildId || 'ARC-2026-089',
-      borrowerCard: studentMember?.cardCode || currentUser.guildId || '',
-      borrowerPhone: studentMember?.phone || '',
-      guardianName: studentMember?.guardianName || '',
-      guardianPhone: studentMember?.guardianPhone || '',
-      homeroomName: studentMember?.homeroomName || '',
-      homeroomPhone: studentMember?.homeroomPhone || '',
-      className: currentUser.class || 'Kelas XI MIPA 2 • Akademi Sains & Arkanum',
-      quantity: 1,
-      borrowedDate: todayStr,
-      borrowedDateISO: toISODate(new Date()),
-      dueDate: toISODate(addDays(new Date(), 7)),
-      daysLeft: 7,
-      maxDays: 7,
-      status: 'pending',
-      notes: 'Pengajuan peminjaman 1 eksemplar fisik buku oleh siswa.'
-    };
-
-    setLoans((prev) => [newLoan, ...prev]);
-
-    const newXp = studentXp + 15;
-    setStudentXp(newXp);
-
-    showToast(
-      'Permintaan Pinjam Terkirim! (+15 XP)',
-      `Pengajuan "${book.title}" telah masuk ke Antrean Persetujuan Archivist. Sementara menunggu, kamu bisa langsung membaca versi digitalnya!`,
-      'emerald'
-    );
-
-    try {
-      confetti({
-        particleCount: 40,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#D4AF37', '#10B981']
-      });
-    } catch {}
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('loans').insert({
-          book_id: book.id,
-          profile_id: 'ARC-2026-089',
-          borrower_name: currentUser.name,
-          requester_name: currentUser.name,
-          requester_role: 'siswa',
-          class_name: currentUser.class,
-          quantity: 1,
-          notes: newLoan.notes,
-          status: 'pending',
-          borrowed_date: newLoan.borrowedDateISO,
-          due_date: newLoan.dueDate,
-          borrower_card: newLoan.borrowerCard || null,
-          borrower_phone: newLoan.borrowerPhone || null,
-          guardian_name: newLoan.guardianName || null,
-          guardian_phone: newLoan.guardianPhone || null,
-          homeroom_name: newLoan.homeroomName || null,
-          homeroom_phone: newLoan.homeroomPhone || null,
-          max_days: 7
-        });
-
-        await supabase
-          .from('profiles')
-          .update({ xp: newXp })
-          .eq('student_id', 'ARC-2026-089');
-      } catch (err) {
-        console.warn('Supabase student loan request sync error:', err);
-      }
     }
   };
 
   // ==========================================
-  // HANDLER: TEACHER CLASS LOAN REQUEST
+  // HANDLER: TEACHER CLASS LOAN REQUEST (POSTGRESQL)
   // ==========================================
   const handleSubmitTeacherLoan = async (e) => {
     e.preventDefault();
+    if (!currentUser) {
+      setIsGatekeeperOpen(true);
+      return;
+    }
     if (!teacherLoanForm.bookId) {
       showToast('Pilih Grimoire', 'Silakan pilih judul buku yang ingin diajukan untuk kelas.', 'purple');
       return;
@@ -2194,249 +1231,147 @@ export default function App() {
       return;
     }
 
-    const todayStr = new Date().toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-    const teacherMember =
-      members.find(
-        (m) =>
-          m.id === currentUser.id ||
-          m.name === currentUser.name ||
-          m.role === 'guru'
-      ) || null;
     const maxDays = getLoanDurationDays('guru', teacherLoanForm.durationDays);
-    const newLoan = {
-      id: `loan-${Date.now()}`,
-      bookId: targetBook.id,
-      bookTitle: targetBook.title,
-      bookCode: targetBook.kodeBuku,
-      borrowerName: currentUser.name,
-      requesterName: currentUser.name,
-      requesterRole: 'guru',
-      profileId: currentUser.id || 'user-guru',
-      borrowerCard: teacherMember?.cardCode || '',
-      borrowerPhone: teacherMember?.phone || '',
-      homeroomName: teacherMember?.homeroomName || '',
-      homeroomPhone: teacherMember?.homeroomPhone || '',
-      className: teacherLoanForm.className || 'Kelas XI MIPA 1',
-      quantity: qty,
-      borrowedDate: todayStr,
-      borrowedDateISO: toISODate(new Date()),
-      dueDate: toISODate(addDays(new Date(), maxDays)),
-      daysLeft: maxDays,
-      maxDays,
-      status: 'pending',
-      notes:
-        teacherLoanForm.notes.trim() ||
-        `Peminjaman ${qty} eksemplar untuk pembelajaran di ${teacherLoanForm.className}.`
-    };
-
-    setLoans((prev) => [newLoan, ...prev]);
-
-    setTeacherLoanForm({
-      bookId: '',
-      quantity: 1,
-      durationDays: 14,
-      className: 'Kelas XI MIPA 1',
-      notes: ''
-    });
 
     try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.65 },
-        colors: ['#38BDF8', '#D4AF37']
+      const res = await api.createLoan({
+        bookId: targetBook.id,
+        quantity: qty,
+        durasi_hari: maxDays,
+        kelas_sasaran: teacherLoanForm.className || 'SMK Kelas 10 TKJ 1',
+        loan_type: 'TEACHER_SELF',
+        autoApprove: false,
+        notes:
+          teacherLoanForm.notes.trim() ||
+          `Peminjaman ${qty} eksemplar untuk pembelajaran di ${teacherLoanForm.className}.`
       });
-    } catch {}
 
-    showToast(
-      'Permintaan Pinjam Kelas Terkirim!',
-      `Pengajuan ${qty} eksemplar "${targetBook.title}" untuk ${newLoan.className} telah diajukan ke Grand Archivist.`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('loans').insert({
-          book_id: targetBook.id,
-          profile_id: null,
-          borrower_name: currentUser.name,
-          requester_name: currentUser.name,
-          requester_role: 'guru',
-          class_name: newLoan.className,
-          quantity: qty,
-          notes: newLoan.notes,
-          status: 'pending',
-          borrowed_date: newLoan.borrowedDateISO,
-          due_date: newLoan.dueDate,
-          borrower_card: newLoan.borrowerCard || null,
-          borrower_phone: newLoan.borrowerPhone || null,
-          homeroom_name: newLoan.homeroomName || null,
-          homeroom_phone: newLoan.homeroomPhone || null,
-          max_days: maxDays
-        });
-      } catch (err) {
-        console.warn('Supabase teacher loan sync error:', err);
+      if (res.loan) {
+        setLoans((prev) => [res.loan, ...prev]);
       }
+
+      setTeacherLoanForm({
+        bookId: '',
+        quantity: 1,
+        durationDays: 14,
+        className: 'SMK Kelas 10 TKJ 1',
+        notes: ''
+      });
+
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.65 },
+          colors: ['#38BDF8', '#D4AF37']
+        });
+      } catch {}
+
+      showToast(
+        'Permintaan Pinjam Kelas Terkirim!',
+        `Pengajuan ${qty} eksemplar "${targetBook.title}" untuk ${res.loan?.className || teacherLoanForm.className} tersimpan ke PostgreSQL.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Mengajukan Pinjaman Kelas', err?.message || 'Coba lagi.', 'purple');
     }
   };
 
   // ==========================================
-  // HANDLER: OPEN & SUBMIT GLS READING LOG
+  // HANDLER: OPEN & SUBMIT GLS READING LOG (POSTGRESQL)
   // ==========================================
   const handleOpenReadingLog = (book) => {
+    if (!currentUser) {
+      showToast('Masuk Terlebih Dahulu', 'Login untuk menulis Jurnal Literasi GLS.', 'purple');
+      setIsGatekeeperOpen(true);
+      return;
+    }
     if (!book || currentUser.role !== 'siswa') return;
     setJournalBook(book);
     setInspectedBookId(null);
   };
 
   const handleSubmitReadingLog = async (payload) => {
-    if (!journalBook || currentUser.role !== 'siswa') return;
+    if (!journalBook || currentUser?.role !== 'siswa') return;
 
-    const studentMember =
-      members.find(
-        (member) =>
-          member.cardCode === currentUser.guildId ||
-          member.id === currentUser.id ||
-          member.name === currentUser.name
-      ) || null;
-    const studentCard =
-      currentUser.guildId || studentMember?.cardCode || currentUser.cardCode || currentUser.id;
-    const className =
-      normalizeClassName(currentUser.class || studentMember?.className || '') ||
-      'Kelas XI MIPA 2';
     const existingLog = readingLogs.find(
       (log) =>
         log.bookId === journalBook.id && isReadingLogOwnedByUser(log, currentUser)
     );
-    const now = new Date().toISOString();
-    const log = {
-      id: existingLog?.id || `reading-log-${Date.now()}`,
-      studentId: studentCard,
-      studentCard,
-      profileId:
-        currentUser.guildId === 'ARC-2026-089'
-          ? currentUser.guildId
-          : existingLog?.profileId || null,
-      studentName: currentUser.name,
-      className,
-      bookId: journalBook.id,
-      bookTitle: journalBook.title,
-      lastPageRead: payload.lastPageRead,
-      favoriteQuote: payload.favoriteQuote,
-      summary: payload.summary,
-      wordCount: payload.wordCount,
-      status: 'submitted',
-      score: null,
-      feedback: '',
-      gradedAt: null,
-      gradedBy: '',
-      createdAt: existingLog?.createdAt || now,
-      updatedAt: now
-    };
 
-    setReadingLogs((prev) =>
-      existingLog
-        ? prev.map((item) => (item.id === existingLog.id ? log : item))
-        : [log, ...prev]
-    );
-    setJournalBook(null);
+    try {
+      const res = await api.createReadingLog({
+        logId: existingLog?.id || null,
+        bookId: journalBook.id,
+        halaman_terakhir: payload.lastPageRead,
+        kutipan_favorit: payload.favoriteQuote,
+        ringkasan_hikmah: payload.summary
+      });
 
-    showToast(
-      existingLog ? 'Jurnal Literasi Diperbarui!' : 'Jurnal Literasi Terkirim!',
-      `Jurnal "${journalBook.title}" (${payload.wordCount} kata) sekarang berstatus Belum Dinilai dan masuk ke Dashboard Guru.`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('reading_logs').upsert(
-          {
-            id: log.id,
-            profile_id: log.profileId,
-            student_card: log.studentCard,
-            student_name: log.studentName,
-            class_name: log.className,
-            book_id: log.bookId,
-            book_title: log.bookTitle,
-            last_page_read: log.lastPageRead,
-            favorite_quote: log.favoriteQuote,
-            summary: log.summary,
-            word_count: log.wordCount,
-            status: log.status,
-            score: null,
-            feedback: null,
-            graded_at: null,
-            graded_by: null,
-            created_at: log.createdAt,
-            updated_at: log.updatedAt
-          },
-          { onConflict: 'id' }
+      if (res.readingLog) {
+        setReadingLogs((prev) =>
+          existingLog
+            ? prev.map((item) => (item.id === existingLog.id ? res.readingLog : item))
+            : [res.readingLog, ...prev]
         );
-      } catch (err) {
-        console.warn('Supabase reading log sync error:', err);
       }
+      setJournalBook(null);
+
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
+      showToast(
+        existingLog ? 'Jurnal Literasi Diperbarui!' : 'Jurnal Literasi Tersimpan!',
+        `Jurnal "${journalBook.title}" (${payload.wordCount} kata) disimpan ke PostgreSQL dan masuk ke Dashboard Guru.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Menyimpan Jurnal', err?.message || 'Periksa kembali isi jurnal Anda.', 'purple');
     }
   };
 
   // ==========================================
-  // HANDLER: GRADE GLS READING LOG (TEACHER)
+  // HANDLER: GRADE GLS READING LOG (TEACHER -> POSTGRESQL)
   // ==========================================
   const handleGradeReadingLog = async (log, { score, feedback }) => {
     if (!log) return;
-    if (currentUser.role !== 'guru' && currentUser.role !== 'admin') return;
+    if (currentUser?.role !== 'guru' && currentUser?.role !== 'admin') return;
 
-    const now = new Date().toISOString();
-    setReadingLogs((prev) =>
-      prev.map((item) =>
-        item.id === log.id
-          ? {
-              ...item,
-              status: 'graded',
-              score,
-              feedback: feedback || '',
-              gradedAt: now,
-              gradedBy: currentUser.name,
-              updatedAt: now
-            }
-          : item
-      )
-    );
+    try {
+      const res = await api.gradeReadingLog(log.id, {
+        score,
+        feedback: feedback || '',
+        status: 'graded'
+      });
 
-    showToast(
-      'Jurnal Sudah Dinilai',
-      `Skor ${score}/100 untuk ${log.studentName} telah disimpan beserta umpan balik.`,
-      'gold'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('reading_logs')
-          .update({
-            status: 'graded',
-            score,
-            feedback: feedback || null,
-            graded_at: now,
-            graded_by: currentUser.name,
-            updated_at: now
-          })
-          .eq('id', log.id);
-      } catch (err) {
-        console.warn('Supabase reading log grading sync error:', err);
+      if (res.readingLog) {
+        setReadingLogs((prev) =>
+          prev.map((item) => (item.id === log.id ? res.readingLog : item))
+        );
       }
+
+      showToast(
+        'Jurnal Sudah Dinilai',
+        `Skor ${score}/100 untuk ${log.studentName} telah disimpan ke PostgreSQL beserta umpan balik.`,
+        'gold'
+      );
+    } catch (err) {
+      showToast('Gagal Menyimpan Nilai', err?.message || 'Pastikan login sebagai Guru/Admin.', 'purple');
     }
   };
 
   // ==========================================
-  // HANDLER: TEACHER ONE-DAY CLASS PACKAGE LOAN
+  // HANDLER: TEACHER ONE-DAY CLASS PACKAGE LOAN (POSTGRESQL)
   // ==========================================
   const handleSubmitPackageLoan = async (event) => {
     event.preventDefault();
-    if (currentUser.role !== 'guru') return;
+    if (!currentUser) {
+      setIsGatekeeperOpen(true);
+      return;
+    }
+    if (currentUser.role !== 'guru' && currentUser.role !== 'admin') return;
 
     const targetBook = books.find((book) => book.id === packageLoanForm.bookId);
     if (!targetBook) {
@@ -2467,184 +1402,86 @@ export default function App() {
       return;
     }
 
-    const teacherMember =
-      members.find(
-        (member) =>
-          member.id === currentUser.id ||
-          member.cardCode === currentUser.cardCode ||
-          member.name === currentUser.name
-      ) || members.find((member) => member.role === 'guru');
-
-    const today = new Date();
-    const dueDate = addDays(today, 1);
-    const newAvailableStock = Math.max(0, targetBook.availableStock - qty);
-    const newStatus = newAvailableStock === 0 ? 'borrowed' : 'available';
-    const className = normalizeClassName(packageLoanForm.className);
+    const className = normalizeClassName(packageLoanForm.className) || packageLoanForm.className.trim();
     const lessonHours = packageLoanForm.lessonHours.trim();
 
-    const newLoan = {
-      id: `package-${Date.now()}`,
-      bookId: targetBook.id,
-      bookTitle: targetBook.title,
-      bookCode: targetBook.kodeBuku,
-      borrowerName: currentUser.name,
-      requesterName: currentUser.name,
-      requesterRole: 'guru',
-      profileId: currentUser.id || 'user-guru',
-      borrowerCard: teacherMember?.cardCode || '',
-      borrowerPhone: teacherMember?.phone || '',
-      homeroomName: teacherMember?.homeroomName || '',
-      homeroomPhone: teacherMember?.homeroomPhone || '',
-      className: className || packageLoanForm.className.trim(),
-      classLabel: packageLoanForm.className.trim(),
-      quantity: qty,
-      isPackage: true,
-      lessonHours,
-      borrowedDate: formatDateID(today),
-      borrowedDateISO: toISODate(today),
-      dueDate: toISODate(dueDate),
-      daysLeft: 1,
-      maxDays: 1,
-      status: 'approved',
-      notes:
-        packageLoanForm.notes.trim() ||
-        `Paket kelas ${qty} eksemplar untuk ${className || packageLoanForm.className.trim()} • ${lessonHours}.`,
-      rejectionReason: ''
-    };
-
-    setBooks((prev) =>
-      prev.map((book) =>
-        book.id === targetBook.id
-          ? {
-              ...book,
-              availableStock: newAvailableStock,
-              status: newStatus,
-              available: newAvailableStock > 0
-            }
-          : book
-      )
-    );
-    setLoans((prev) => [newLoan, ...prev]);
-    setPackageLoanForm((prev) => ({
-      bookId: '',
-      quantity: 30,
-      className: prev.className || 'Kelas XI MIPA 2',
-      lessonHours: 'Jam ke 3-4',
-      notes: ''
-    }));
-
     try {
-      confetti({
-        particleCount: 60,
-        spread: 65,
-        origin: { y: 0.6 },
-        colors: ['#D4AF37', '#38BDF8', '#10B981']
+      const res = await api.createLoan({
+        bookId: targetBook.id,
+        quantity: qty,
+        durasi_hari: 1,
+        kelas_sasaran: className,
+        jam_pelajaran: lessonHours,
+        loan_type: 'CLASS_PACKAGE',
+        autoApprove: true,
+        notes:
+          packageLoanForm.notes.trim() ||
+          `Paket kelas ${qty} eksemplar untuk ${className} • ${lessonHours}.`
       });
-    } catch {}
 
-    showToast(
-      'Paket Kelas Aktif!',
-      `${qty} eksemplar "${targetBook.title}" untuk ${className || packageLoanForm.className.trim()} • ${lessonHours}. Sisa stok: ${newAvailableStock}. Tenggat besok (${formatDateID(dueDate)}).`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('loans').insert({
-          book_id: targetBook.id,
-          profile_id: null,
-          borrower_name: currentUser.name,
-          requester_name: currentUser.name,
-          requester_role: 'guru',
-          class_name: newLoan.className,
-          quantity: qty,
-          notes: newLoan.notes,
-          status: 'approved',
-          borrowed_date: newLoan.borrowedDateISO,
-          due_date: newLoan.dueDate,
-          borrower_card: newLoan.borrowerCard || null,
-          borrower_phone: newLoan.borrowerPhone || null,
-          homeroom_name: newLoan.homeroomName || null,
-          homeroom_phone: newLoan.homeroomPhone || null,
-          max_days: 1,
-          is_package: true,
-          lesson_hours: lessonHours
-        });
-
-        await supabase
-          .from('books')
-          .update({
-            available_stock: newAvailableStock,
-            status: newStatus,
-            available: newAvailableStock > 0
-          })
-          .eq('id', targetBook.id);
-      } catch (err) {
-        console.warn('Supabase class package sync error:', err);
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
       }
+      if (res.loan) {
+        setLoans((prev) => [res.loan, ...prev]);
+      }
+
+      setPackageLoanForm((prev) => ({
+        bookId: '',
+        quantity: 30,
+        className: prev.className || 'SMK Kelas 10 TKJ 1',
+        lessonHours: 'Jam ke 3-4',
+        notes: ''
+      }));
+
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 65,
+          origin: { y: 0.6 },
+          colors: ['#D4AF37', '#38BDF8', '#10B981']
+        });
+      } catch {}
+
+      showToast(
+        'Paket Kelas Aktif di PostgreSQL!',
+        `${qty} eksemplar "${targetBook.title}" untuk ${className} • ${lessonHours}. Sisa stok: ${res.book?.availableStock ?? '-'}.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Mengaktifkan Paket Kelas', err?.message || 'Coba ulangi.', 'purple');
     }
   };
 
   const handleCompletePackageLoan = async (loan) => {
     if (!loan || !loan.isPackage) return;
-    if (currentUser.role !== 'guru' && currentUser.role !== 'admin') return;
+    if (currentUser?.role !== 'guru' && currentUser?.role !== 'admin') return;
 
-    const book = books.find((item) => item.id === loan.bookId);
-    const returnQty = Math.max(1, Number(loan.quantity) || 1);
-    const restoredStock = book
-      ? Math.min(book.totalStock, book.availableStock + returnQty)
-      : null;
-    const now = new Date().toISOString();
-
-    if (book) {
-      setBooks((prev) =>
-        prev.map((item) =>
-          item.id === book.id
-            ? {
-                ...item,
-                availableStock: restoredStock,
-                status: restoredStock > 0 ? 'available' : 'borrowed',
-                available: restoredStock > 0
-              }
-            : item
-        )
-      );
-    }
-
-    setLoans((prev) =>
-      prev.map((item) =>
-        item.id === loan.id
-          ? { ...item, status: 'returned', returnedAt: now, daysLeft: 0 }
-          : item
-      )
-    );
-
-    showToast(
-      'Paket Kelas Selesai',
-      `${returnQty} eksemplar "${loan.bookTitle || book?.title || 'Grimoire'}" untuk ${loan.className} telah dikembalikan. Stok fisik dipulihkan${restoredStock !== null ? ` menjadi ${restoredStock}` : ''}.`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('loans')
-          .update({ status: 'returned', returned_at: now })
-          .eq('id', loan.id);
-
-        if (book && restoredStock !== null) {
-          await supabase
-            .from('books')
-            .update({
-              available_stock: restoredStock,
-              status: restoredStock > 0 ? 'available' : 'borrowed',
-              available: restoredStock > 0
-            })
-            .eq('id', book.id);
-        }
-      } catch (err) {
-        console.warn('Supabase class package return sync error:', err);
+    try {
+      const res = await api.returnLoan(loan.id);
+      if (res.book) {
+        setBooks((prev) => prev.map((b) => (b.id === res.book.id ? res.book : b)));
       }
+      if (res.loan) {
+        setLoans((prev) => prev.map((l) => (l.id === res.loan.id ? res.loan : l)));
+      }
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
+      showToast(
+        'Paket Kelas Selesai',
+        `${loan.quantity || 1} eksemplar "${loan.bookTitle}" untuk ${loan.className} telah dikembalikan & stok dipulihkan (${res.book?.availableStock ?? '-'}).`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast('Gagal Menyelesaikan Paket Kelas', err?.message || 'Coba lagi.', 'purple');
     }
   };
 
@@ -2653,8 +1490,18 @@ export default function App() {
   // ==========================================
   const handleFinishDigitalReading = async (book) => {
     const xpReward = 75;
-    const updatedXp = studentXp + xpReward;
+    let updatedXp = studentXp + xpReward;
     const nextBooksRead = booksReadCount + 1;
+
+    if (currentUser) {
+      try {
+        const res = await api.addXp(xpReward);
+        if (res?.user) {
+          updatedXp = res.user.xp;
+          setCurrentUser(res.user);
+        }
+      } catch {}
+    }
 
     setStudentXp(updatedXp);
     setBooksReadCount(nextBooksRead);
@@ -2664,25 +1511,10 @@ export default function App() {
       `Kamu telah menuntaskan pembacaan digital "${book.title}". Pemahaman arkanummu bertambah pesat!`,
       'gold'
     );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({
-            xp: updatedXp,
-            books_read: nextBooksRead,
-            tomes_read_count: nextBooksRead
-          })
-          .or('guild_id.eq.ARC-2026-089,student_id.eq.ARC-2026-089,id.eq.ARC-2026-089');
-      } catch (err) {
-        console.warn('Supabase digital reading reward sync error:', err);
-      }
-    }
   };
 
   // ==========================================
-  // HANDLER: RETURN BOOK & SUBMIT REVIEW
+  // HANDLER: RETURN BOOK & SUBMIT REVIEW (POSTGRESQL)
   // ==========================================
   const handleOpenReturnModal = (loan) => {
     const book = books.find((b) => b.id === loan.bookId);
@@ -2697,119 +1529,65 @@ export default function App() {
     if (!returningLoan) return;
 
     const { book } = returningLoan;
-    const returnQty = returningLoan.quantity || 1;
     const noteText =
       reviewComment.trim() ||
       'Grimoire yang sangat mencerahkan! Memberikan banyak wawasan baru bagi para pembaca.';
 
-    const newReview = {
-      id: `rev-${Date.now()}`,
-      user: `${currentUser.name} • ${currentRank.title}`,
-      rating: reviewRating,
-      date: 'Baru saja',
-      comment: noteText
-    };
-
-    // Update book status and increment available stock
-    setBooks((prev) =>
-      prev.map((b) =>
-        b.id === book.id
-          ? {
-              ...b,
-              status: 'available',
-              available: true,
-              availableStock: Math.min(b.totalStock, b.availableStock + returnQty),
-              reviews: [newReview, ...(b.reviews || [])]
-            }
-          : b
-      )
-    );
-
-    // Update loan status to 'returned'
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === returningLoan.id
-          ? { ...l, status: 'returned', returnedAt: new Date().toISOString() }
-          : l
-      )
-    );
-
-    const earnedXp = 100;
-    const updatedXp = studentXp + earnedXp;
-    setStudentXp(updatedXp);
-
-    const nextBooksRead = booksReadCount + 1;
-    setBooksReadCount(nextBooksRead);
-
-    // Update Quest 2 & Unlock Scribe of Lore badge
-    setQuests((prev) =>
-      prev.map((q) =>
-        q.id === 'quest-2'
-          ? { ...q, progress: Math.min(q.target, q.progress + 1) }
-          : q
-      )
-    );
-    setBadges((prev) =>
-      prev.map((b) => (b.id === 'badge-3' ? { ...b, unlocked: true } : b))
-    );
-
-    setReturningLoan(null);
-
     try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#D4AF37', '#10B981', '#8B5CF6']
+      const loanRes = await api.returnLoan(returningLoan.id);
+      const revRes = await api.addReview({
+        bookId: book.id,
+        rating: reviewRating,
+        comment: noteText
       });
-    } catch {}
 
-    showToast(
-      `Scholar's Note Tersimpan! (+${earnedXp} XP)`,
-      `Terima kasih telah mengembalikan "${book.title}" dan mewariskan catatan ilmu bagi pembaca berikutnya.`,
-      'gold'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('loans')
-          .update({ status: 'returned', returned_at: new Date().toISOString() })
-          .eq('id', returningLoan.id);
-
-        await supabase
-          .from('books')
-          .update({
-            status: 'available',
-            available: true,
-            available_stock: Math.min(book.totalStock, book.availableStock + returnQty)
-          })
-          .eq('id', book.id);
-
-        await supabase.from('reviews').insert({
-          id: newReview.id,
-          book_id: book.id,
-          profile_id: 'ARC-2026-089',
-          scholar_name: currentUser.name,
-          scholar_rank: currentRank.title,
-          book_title: book.title,
-          rating: reviewRating,
-          note: noteText,
-          xp_awarded: earnedXp,
-          review_date: new Date().toISOString().split('T')[0]
-        });
-
-        await supabase
-          .from('profiles')
-          .update({
-            xp: updatedXp,
-            books_read: nextBooksRead,
-            tomes_read_count: nextBooksRead
-          })
-          .or('guild_id.eq.ARC-2026-089,student_id.eq.ARC-2026-089,id.eq.ARC-2026-089');
-      } catch (err) {
-        console.warn('Supabase sync return error:', err);
+      const finalBook = revRes?.book || loanRes?.book;
+      if (finalBook) {
+        setBooks((prev) => prev.map((b) => (b.id === finalBook.id ? finalBook : b)));
       }
+      if (loanRes?.loan) {
+        setLoans((prev) => prev.map((l) => (l.id === loanRes.loan.id ? loanRes.loan : l)));
+      }
+
+      const earnedXp = book.xpReward || 100;
+      const updatedXp = studentXp + earnedXp;
+      setStudentXp(updatedXp);
+      setBooksReadCount((prev) => prev + 1);
+
+      setQuests((prev) =>
+        prev.map((q) =>
+          q.id === 'quest-2'
+            ? { ...q, progress: Math.min(q.target, q.progress + 1) }
+            : q
+        )
+      );
+      setBadges((prev) =>
+        prev.map((b) => (b.id === 'badge-3' ? { ...b, unlocked: true } : b))
+      );
+
+      setReturningLoan(null);
+
+      try {
+        const lbRes = await api.getLeaderboard();
+        setServerLeaderboard(lbRes?.leaderboard || []);
+      } catch {}
+
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#D4AF37', '#10B981', '#8B5CF6']
+        });
+      } catch {}
+
+      showToast(
+        `Scholar's Note Tersimpan! (+${earnedXp} XP)`,
+        `Terima kasih telah mengembalikan "${book.title}" dan menyimpan ulasan di PostgreSQL.`,
+        'gold'
+      );
+    } catch (err) {
+      showToast('Gagal Memproses Pengembalian', err?.message || 'Coba lagi.', 'purple');
     }
   };
 
@@ -2823,7 +1601,16 @@ export default function App() {
       prev.map((q) => (q.id === quest.id ? { ...q, claimed: true } : q))
     );
 
-    const updatedXp = studentXp + quest.xpReward;
+    let updatedXp = studentXp + quest.xpReward;
+    if (currentUser) {
+      try {
+        const res = await api.addXp(quest.xpReward);
+        if (res?.user) {
+          updatedXp = res.user.xp;
+          setCurrentUser(res.user);
+        }
+      } catch {}
+    }
     setStudentXp(updatedXp);
 
     showToast(
@@ -2831,15 +1618,6 @@ export default function App() {
       `Kamu memperoleh +${quest.xpReward} XP dan segel kehormatan "${quest.badgeName}".`,
       'gold'
     );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('quests').update({ claimed: true }).eq('id', quest.id);
-        await supabase.from('profiles').update({ xp: updatedXp }).eq('student_id', 'ARC-2026-089');
-      } catch (err) {
-        console.warn('Supabase quest claim sync error:', err);
-      }
-    }
   };
 
   // ==========================================
@@ -2973,148 +1751,134 @@ export default function App() {
     e.preventDefault();
     if (!newBookForm.title.trim() || !newBookForm.author.trim()) return;
 
-    const schoolObj = SCHOOLS_OF_LORE.find((s) => s.id === newBookForm.category);
-    const newId = `book-${Date.now()}`;
-    const totalQty = Number(newBookForm.totalStock) || 5;
-    const availQty = Number(newBookForm.availableStock) ?? totalQty;
-
     const customDigitalContent = newBookForm.digitalContentText.trim()
       ? [
           {
-            chapterNum: 'BAB I',
-            chapterTitle: 'Inisiasi Manuskrip',
+            chapterNumber: 1,
+            title: 'Bab I: Inisiasi Manuskrip',
             content: newBookForm.digitalContentText.trim()
           }
         ]
-      : getDigitalTomeContent({ title: newBookForm.title, author: newBookForm.author, category: newBookForm.category });
+      : getDigitalTomeContent({
+          title: newBookForm.title,
+          author: newBookForm.author,
+          category: newBookForm.category
+        });
 
-    const newBook = enrichBook(
-      {
-        id: newId,
-        title: newBookForm.title.trim(),
-        subtitle: newBookForm.subtitle.trim() || 'Manuskrip Rahasia Pengetahuan',
-        author: newBookForm.author.trim(),
+    const totalQty = Number(newBookForm.totalStock) || 5;
+    const availQty =
+      newBookForm.availableStock !== '' && newBookForm.availableStock != null
+        ? Number(newBookForm.availableStock)
+        : totalQty;
+    const jenjang = newBookForm.jenjang || 'SMK';
+    const jurusan = jenjang === 'SMK' ? newBookForm.jurusan || 'TKJ' : 'Semua Jurusan';
+    const kodeBuku =
+      newBookForm.kodeBuku.trim().toUpperCase() ||
+      `BK-${jenjang}-${Date.now().toString().slice(-5)}`;
+
+    try {
+      const res = await api.createBook({
+        kode_buku: kodeBuku,
+        judul: newBookForm.title.trim(),
+        subtitle:
+          newBookForm.subtitle.trim() ||
+          `${newBookForm.jenisBuku || 'Buku Paket Wajib'} • ${jenjang} Kelas ${newBookForm.kelas || '10'} (${jurusan})`,
+        penulis: newBookForm.author.trim(),
+        penerbit: newBookForm.publisher.trim() || '-',
+        tahun_terbit: Number(newBookForm.publicationYear) || 2024,
+        jenjang,
+        kelas: newBookForm.kelas || '10',
+        jurusan,
+        jenis_buku: newBookForm.jenisBuku || 'Buku Paket Wajib',
         category: newBookForm.category,
-        categoryLabel: `${schoolObj?.name || 'Alchemy'} (${schoolObj?.indo || 'Sains & Alam'})`,
-        rating: 5.0,
-        xpReward: Number(newBookForm.xpReward) || 120,
-        pages: Number(newBookForm.pages) || 350,
+        stok_fisik: availQty,
+        total_stok: totalQty,
+        link_cover: newBookForm.coverUrl.trim() || null,
+        link_pdf: newBookForm.pdfUrl.trim() || null,
+        ddc: newBookForm.ddc.trim() || '000',
+        callNumber: newBookForm.callNumber.trim() || null,
+        shelf: newBookForm.shelf.trim() || 'Menara Arsip Sentral',
         isbn:
           newBookForm.isbn.trim() ||
           `978-602-${Math.floor(100 + Math.random() * 899)}-0`,
-        shelf: newBookForm.shelf.trim() || 'Menara Arsip Sentral',
-        kodeBuku: newBookForm.kodeBuku.trim(),
-        publisher: newBookForm.publisher.trim(),
-        publicationYear: Number(newBookForm.publicationYear) || 2024,
-        coverUrl: newBookForm.coverUrl.trim(),
-        pdfUrl: newBookForm.pdfUrl.trim(),
-        ddc: newBookForm.ddc.trim(),
-        callNumber: newBookForm.callNumber.trim(),
-        status: availQty > 0 ? 'available' : 'borrowed',
-        available: availQty > 0,
-        totalStock: totalQty,
-        availableStock: availQty,
-        hasDigital: true,
-        digitalContent: customDigitalContent,
-        popular: true,
-        coverRune: '✦',
-        coverGradient: 'from-amber-950 via-stone-900 to-black',
-        accentColor: '#D4AF37',
-        ingredients:
-          newBookForm.ingredients.length > 0
-            ? newBookForm.ingredients
-            : ['spark', 'wisdom'],
+        pages: Number(newBookForm.pages) || 350,
+        xpReward: Number(newBookForm.xpReward) || 120,
         synopsis:
           newBookForm.synopsis.trim() ||
           'Naskah grimoire baru yang baru saja diinskripsikan ke dalam lemari arsip agung.',
-        reviews: []
-      },
-      books.length
-    );
+        digitalContent: customDigitalContent
+      });
 
-    setBooks((prev) => [newBook, ...prev]);
-
-    // Reset Form
-    setNewBookForm({
-      title: '',
-      subtitle: '',
-      author: '',
-      category: 'Alchemy',
-      shelf: 'Menara Timur • Rak Alkimia C1',
-      kodeBuku: '',
-      publisher: '',
-      publicationYear: 2024,
-      coverUrl: '',
-      pdfUrl: '',
-      ddc: '',
-      callNumber: '',
-      pages: 350,
-      xpReward: 120,
-      isbn: '978-602-000-000-0',
-      totalStock: 5,
-      availableStock: 5,
-      digitalContentText: '',
-      synopsis: '',
-      ingredients: ['spark', 'craft']
-    });
-
-    showToast(
-      'Grimoire Baru Berhasil Diinskripsikan!',
-      `"${newBook.title}" kini telah resmi terdaftar di katalog (${availQty}/${totalQty} eksemplar tersedia).`,
-      'emerald'
-    );
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('books').insert({
-          id: newBook.id,
-          title: newBook.title,
-          fantasy_subtitle: newBook.subtitle,
-          author: newBook.author,
-          isbn: newBook.isbn,
-          xp_reward: newBook.xpReward,
-          school: newBook.category,
-          school_name: newBook.categoryLabel,
-          rating: newBook.rating,
-          pages: newBook.pages,
-          shelf: newBook.shelf,
-          status: newBook.status,
-          available: newBook.available,
-          total_stock: newBook.totalStock,
-          available_stock: newBook.availableStock,
-          has_digital: true,
-          digital_content: newBook.digitalContent,
-          ingredients: newBook.ingredients,
-          synopsis: newBook.synopsis,
-          featured: true,
-          kode_buku: newBook.kodeBuku,
-          book_code: newBook.kodeBuku,
-          ddc: newBook.ddc,
-          call_number: newBook.callNumber,
-          barcode: newBook.barcode,
-          publisher: newBook.publisher || null,
-          publication_year: newBook.publicationYear || null,
-          cover_url: newBook.coverUrl || null,
-          pdf_url: newBook.pdfUrl || null
-        });
-      } catch (err) {
-        console.warn('Supabase insert book error:', err);
+      if (res.book) {
+        setBooks((prev) => [res.book, ...prev]);
+        setCatalogBooks((prev) => [res.book, ...prev]);
       }
+
+      setNewBookForm({
+        title: '',
+        subtitle: '',
+        author: '',
+        jenjang: 'SMK',
+        kelas: '10',
+        jurusan: 'TKJ',
+        jenisBuku: 'Buku Paket Wajib',
+        category: 'Artificers Craft',
+        shelf: 'Rak SMK Kelas 10 • TKJ',
+        kodeBuku: '',
+        publisher: '',
+        publicationYear: 2024,
+        coverUrl: '',
+        pdfUrl: '',
+        ddc: '',
+        callNumber: '',
+        pages: 350,
+        xpReward: 120,
+        isbn: '978-602-000-000-0',
+        totalStock: 10,
+        availableStock: 10,
+        digitalContentText: '',
+        synopsis: '',
+        ingredients: ['spark', 'craft']
+      });
+
+      showToast(
+        'Buku Kurikulum Disimpan ke PostgreSQL!',
+        `"${res.book?.title || newBookForm.title}" (${jenjang} Kelas ${newBookForm.kelas} • ${jurusan}) resmi terdaftar di database.`,
+        'emerald'
+      );
+    } catch (err) {
+      showToast(
+        'Gagal Menambahkan Buku',
+        err?.message || 'Periksa keunikan Kode Buku & hak akses Admin.',
+        'purple'
+      );
     }
   };
 
-  // Filter books for Vault of Tomes
+  // Filter books for Vault of Tomes (berbasis query Prisma + availability filter)
   const filteredBooks = useMemo(() => {
-    return books.filter((book) => {
+    const sourceList = catalogBooks.length > 0 ? catalogBooks : books;
+    return sourceList.filter((book) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         book.title.toLowerCase().includes(q) ||
         (book.subtitle && book.subtitle.toLowerCase().includes(q)) ||
         book.author.toLowerCase().includes(q) ||
-        book.categoryLabel.toLowerCase().includes(q);
+        (book.kodeBuku && book.kodeBuku.toLowerCase().includes(q)) ||
+        (book.jenjang && book.jenjang.toLowerCase().includes(q)) ||
+        (book.jurusan && book.jurusan.toLowerCase().includes(q)) ||
+        (book.jenisBuku && book.jenisBuku.toLowerCase().includes(q)) ||
+        (book.categoryLabel && book.categoryLabel.toLowerCase().includes(q));
 
       const matchesCategory =
         selectedCategory === 'All' || book.category === selectedCategory;
+
+      const matchesCurriculum = matchesCurriculumFilter(book, {
+        jenjang: selectedJenjang,
+        kelas: selectedKelas,
+        jurusan: selectedJurusan,
+        jenisBuku: selectedJenisBuku
+      });
 
       let matchesAvailability = true;
       if (availabilityFilter === 'available') {
@@ -3123,9 +1887,24 @@ export default function App() {
         matchesAvailability = book.availableStock === 0;
       }
 
-      return matchesSearch && matchesCategory && matchesAvailability;
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesCurriculum &&
+        matchesAvailability
+      );
     });
-  }, [books, searchQuery, selectedCategory, availabilityFilter]);
+  }, [
+    catalogBooks,
+    books,
+    searchQuery,
+    selectedCategory,
+    selectedJenjang,
+    selectedKelas,
+    selectedJurusan,
+    selectedJenisBuku,
+    availabilityFilter
+  ]);
 
   // Dynamic Cauldron Colors
   const cauldronColor = useMemo(() => {
@@ -3258,6 +2037,8 @@ export default function App() {
         currentUser={currentUser}
         onSwitchRole={handleSwitchRole}
         onOpenGatekeeperModal={() => setIsGatekeeperOpen(true)}
+        onLogout={handleLogout}
+        isSwitching={isSyncingDatabase}
       />
 
       {/* ==========================================
@@ -3297,20 +2078,20 @@ export default function App() {
               </div>
             </button>
 
-            {/* Smart Supabase Status Badge */}
+            {/* PostgreSQL + Prisma Status Badge */}
             <div className="order-2 lg:order-2 flex items-center">
-              {isSupabaseConfigured ? (
+              {isDatabaseConnected ? (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.35)]">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Connected to Grand Archive DB</span>
+                  <span>PostgreSQL + Prisma Connected</span>
                 </span>
               ) : (
                 <span
                   className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-500/40 flex items-center gap-1.5"
-                  title="Aplikasi berjalan lancar tanpa database cloud (Local Fallback)"
+                  title="Menghubungkan ke server PostgreSQL + Prisma"
                 >
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>Local Grimoire Mode</span>
+                  <span>{isCheckingAuth ? 'Memuat Database...' : 'Koneksi DB Terputus'}</span>
                 </span>
               )}
             </div>
@@ -3376,48 +2157,58 @@ export default function App() {
 
             {/* Current Active User Profile Pill */}
             <div className="order-3 lg:order-4 flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (currentUser.role === 'admin') setActiveTab('archivist');
-                  else if (currentUser.role === 'guru') setActiveTab('mentor');
-                  else setActiveTab('sanctum');
-                }}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all hover:border-[#D4AF37]"
-                style={{
-                  backgroundColor: '#1E1916',
-                  borderColor: 'rgba(212, 175, 55, 0.35)'
-                }}
-                title="Buka Ruang Profil Role Ini"
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border"
-                  style={{
-                    backgroundColor: `${currentUser.color}20`,
-                    borderColor: `${currentUser.color}60`
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    if (currentUser?.role === 'admin') setActiveTab('archivist');
+                    else if (currentUser?.role === 'guru') setActiveTab('mentor');
+                    else setActiveTab('sanctum');
                   }}
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all hover:border-[#D4AF37]"
+                  style={{
+                    backgroundColor: '#1E1916',
+                    borderColor: 'rgba(212, 175, 55, 0.35)'
+                  }}
+                  title="Buka Ruang Profil Role Ini"
                 >
-                  <span>{currentUser.avatar}</span>
-                </div>
-                <div className="text-left hidden sm:block">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-cinzel font-bold text-[#F4E8C1] truncate max-w-[120px]">
-                      {currentUser.name.split(' ')[0]}
-                    </span>
-                    <span
-                      className="text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase"
-                      style={{
-                        backgroundColor: `${currentUser.color}25`,
-                        color: currentUser.color
-                      }}
-                    >
-                      {currentUser.role}
-                    </span>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border"
+                    style={{
+                      backgroundColor: `${currentUser.color || '#D4AF37'}20`,
+                      borderColor: `${currentUser.color || '#D4AF37'}60`
+                    }}
+                  >
+                    <span>{currentUser.avatar || '📚'}</span>
                   </div>
-                  <p className="text-[10px] text-[#A89F91] truncate max-w-[140px]">
-                    {currentUser.title}
-                  </p>
-                </div>
-              </button>
+                  <div className="text-left hidden sm:block">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-cinzel font-bold text-[#F4E8C1] truncate max-w-[120px]">
+                        {(currentUser?.name || currentUser.username || 'Pengguna').split(' ')[0]}
+                      </span>
+                      <span
+                        className="text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase"
+                        style={{
+                          backgroundColor: `${currentUser.color || '#D4AF37'}25`,
+                          color: currentUser.color || '#D4AF37'
+                        }}
+                      >
+                        {currentUser.role}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#A89F91] truncate max-w-[140px]">
+                      {currentUser.title || currentUser.classLabel}
+                    </p>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsGatekeeperOpen(true)}
+                  className="px-3.5 py-2 rounded-xl border border-[#D4AF37]/60 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-xs font-cinzel font-bold text-[#F4E8C1] transition-all flex items-center gap-2"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Masuk Akun</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setIsGatekeeperOpen(true)}
@@ -3435,7 +2226,7 @@ export default function App() {
           MAGICAL SCROLL TOAST NOTIFICATION
       ========================================== */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-md animate-bounce">
+        <div className="fixed bottom-5 right-5 z-[60] max-w-md animate-bounce">
           <div
             className="p-4 rounded-xl shadow-2xl border flex items-start gap-3"
             style={{
@@ -3787,14 +2578,14 @@ export default function App() {
                           </button>
 
                           <div className="flex items-center gap-1.5">
-                            {currentUser.role === 'admin' ? (
+                            {currentUser?.role === 'admin' ? (
                               <button
                                 onClick={() => setActiveTab('archivist')}
                                 className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
                               >
                                 Kelola Stok
                               </button>
-                            ) : currentUser.role === 'guru' ? (
+                            ) : currentUser?.role === 'guru' ? (
                               <button
                                 onClick={() => {
                                   setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
@@ -4097,24 +2888,24 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (currentUser.role === 'admin') setActiveTab('archivist');
-                              else if (currentUser.role === 'guru') {
+                              if (currentUser?.role === 'admin') setActiveTab('archivist');
+                              else if (currentUser?.role === 'guru') {
                                 setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
                                 setActiveTab('mentor');
                               } else {
                                 handleRequestStudentLoan(book);
                               }
                             }}
-                            disabled={currentUser.role === 'siswa' && !isAvailable}
+                            disabled={currentUser?.role === 'siswa' && !isAvailable}
                             className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${
-                              currentUser.role === 'siswa' && !isAvailable
+                              currentUser?.role === 'siswa' && !isAvailable
                                 ? 'bg-white/5 text-[#A89F91] cursor-not-allowed'
                                 : 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
                             }`}
                           >
-                            {currentUser.role === 'admin'
+                            {currentUser?.role === 'admin'
                               ? 'Kelola'
-                              : currentUser.role === 'guru'
+                              : currentUser?.role === 'guru'
                               ? 'Pinjam Kelas'
                               : isAvailable
                               ? 'Pinjam Fisik'
@@ -4131,42 +2922,309 @@ export default function App() {
         )}
 
         {/* ==========================================
-            VIEW 3: VAULT OF TOMES (KATALOG BUKU LENGKAP)
+            VIEW 3: VAULT OF TOMES (KATALOG BUKU KURIKULUM BERTINGKAT)
         ========================================== */}
         {activeTab === 'vault' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <span className="text-xs font-cinzel tracking-widest text-[#D4AF37] uppercase">
-                  THE SACRED ARCHIVES OF KNOWLEDGE
+                  THE SACRED ARCHIVES • KURIKULUM SMP, SMA &amp; SMK (TKJ, BM, TKR/TR)
                 </span>
                 <h1 className="font-cinzel text-3xl font-bold text-[#F4E8C1] mt-0.5">
                   Vault of Tomes ({filteredBooks.length} Koleksi)
                 </h1>
                 <p className="text-xs text-[#A89F91] mt-1">
-                  Koleksi buku perpustakaan SMA Nusantara lengkap dengan status ketersediaan fisik dan versi digital.
+                  Navigasi kurikulum bertingkat: pilih Jenjang, Kelas, Jurusan SMK, dan Jenis Buku.
                 </p>
               </div>
 
-              {/* Filters */}
+              {/* Search & Availability Filter */}
               <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari judul, kode, jurusan..."
+                    className="pl-8 pr-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] w-52 sm:w-64"
+                  />
+                </div>
                 <select
                   value={availabilityFilter}
                   onChange={(e) => setAvailabilityFilter(e.target.value)}
                   className="px-3.5 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
                 >
-                  <option value="all">Semua Koleksi ({books.length})</option>
+                  <option value="all">Semua Ketersediaan ({books.length})</option>
                   <option value="available">
                     Stok Fisik Tersedia ({books.filter((b) => b.availableStock > 0).length})
                   </option>
                   <option value="out_of_stock">
-                    Stok Fisik Habis / Khusus Digital ({books.filter((b) => b.availableStock === 0).length})
+                    Stok Fisik Habis ({books.filter((b) => b.availableStock === 0).length})
                   </option>
                 </select>
               </div>
             </div>
 
-            {/* Category Pills */}
+            {/* =========================================================
+                NAVIGASI FILTER KURIKULUM BERTINGKAT (SMP, SMA, SMK 3 JURUSAN)
+            ========================================================= */}
+            <div className="parchment-card rounded-2xl p-5 sm:p-6 space-y-4 border border-[#D4AF37]/35">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D4AF37]/20 pb-3">
+                <div>
+                  <span className="text-[11px] font-cinzel font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Navigasi Filter Kurikulum Bertingkat</span>
+                  </span>
+                  <p className="text-xs text-[#A89F91] mt-0.5">
+                    Memilih jurusan SMK (TKJ, BM, atau TKR/TR) otomatis menyertakan buku muatan nasional berlabel <strong className="text-[#F4E8C1]">Semua Jurusan</strong>.
+                  </p>
+                </div>
+
+                {/* Pintasan Cepat Uji Kurikulum */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-[#A89F91] mr-1">Pintasan Cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJenjang('SMK');
+                      setSelectedKelas('10');
+                      setSelectedJurusan('TKJ');
+                      setSelectedJenisBuku('All');
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                  >
+                    SMK → Kelas 10 → TKJ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJenjang('SMK');
+                      setSelectedKelas('10');
+                      setSelectedJurusan('BM');
+                      setSelectedJenisBuku('All');
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all"
+                  >
+                    SMK → Kelas 10 → BM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJenjang('SMK');
+                      setSelectedKelas('10');
+                      setSelectedJurusan('TKR/TR');
+                      setSelectedJenisBuku('All');
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition-all"
+                  >
+                    SMK → Kelas 10 → TKR/TR
+                  </button>
+                  {(selectedJenjang !== 'All' ||
+                    selectedKelas !== 'All' ||
+                    selectedJurusan !== 'All' ||
+                    selectedJenisBuku !== 'All') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJenjang('All');
+                        setSelectedKelas('All');
+                        setSelectedJurusan('All');
+                        setSelectedJenisBuku('All');
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
+                    >
+                      Reset Kurikulum
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* TINGKAT 1: PILIH JENJANG (SMP, SMA, SMK, UMUM) */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-cinzel text-[#D4AF37]">
+                  1. PILIH JENJANG PENDIDIKAN:
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: 'All', label: 'Semua Jenjang' },
+                    { id: 'SMP', label: 'SMP (Kelas 7-9)' },
+                    { id: 'SMA', label: 'SMA (Kelas 10-12)' },
+                    { id: 'SMK', label: 'SMK (3 Jurusan)' },
+                    { id: 'Umum', label: 'Umum / Literasi' }
+                  ].map((item) => {
+                    const active = selectedJenjang === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedJenjang(item.id);
+                          setSelectedKelas('All');
+                          setSelectedJurusan('All');
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-cinzel font-bold transition-all border ${
+                          active
+                            ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-md'
+                            : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-[#D4AF37]/50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* TINGKAT 2: PILIH KELAS BERDASARKAN JENJANG */}
+              {selectedJenjang !== 'All' && selectedJenjang !== 'Umum' && (
+                <div className="space-y-1.5 pt-1 animate-fadeIn">
+                  <label className="block text-[11px] font-cinzel text-emerald-400">
+                    2. PILIH TINGKAT KELAS ({selectedJenjang}):
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedKelas('All')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
+                        selectedKelas === 'All'
+                          ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
+                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
+                      }`}
+                    >
+                      Semua Kelas {selectedJenjang}
+                    </button>
+                    {(KELAS_BY_JENJANG[selectedJenjang] || []).map((kls) => {
+                      const active = selectedKelas === kls;
+                      return (
+                        <button
+                          key={kls}
+                          type="button"
+                          onClick={() => setSelectedKelas(kls)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
+                            active
+                              ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
+                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
+                          }`}
+                        >
+                          Kelas {kls}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TINGKAT 3: PILIH JURUSAN (KHUSUS SMK: TKJ, BM, TKR/TR, SEMUA JURUSAN) */}
+              {selectedJenjang === 'SMK' && (
+                <div className="space-y-1.5 pt-1 animate-fadeIn">
+                  <label className="block text-[11px] font-cinzel text-sky-400">
+                    3. PILIH JURUSAN SMK (OTOMATIS MENYERTAKAN BUKU &apos;SEMUA JURUSAN&apos;):
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJurusan('All')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
+                        selectedJurusan === 'All'
+                          ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
+                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
+                      }`}
+                    >
+                      Semua Jurusan SMK
+                    </button>
+                    {SMK_JURUSAN_OPTIONS.map((jur) => {
+                      const active = selectedJurusan === jur;
+                      return (
+                        <button
+                          key={jur}
+                          type="button"
+                          onClick={() => setSelectedJurusan(jur)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
+                            active
+                              ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
+                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
+                          }`}
+                        >
+                          {jur === 'TKJ'
+                            ? 'TKJ (Teknik Komputer & Jaringan)'
+                            : jur === 'BM'
+                            ? 'BM (Bisnis & Manajemen)'
+                            : jur === 'TKR/TR'
+                            ? 'TKR/TR (Teknik Kendaraan Ringan)'
+                            : 'Hanya Muatan Nasional (Semua Jurusan)'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TINGKAT 4: PILIH JENIS BUKU */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-[11px] font-cinzel text-purple-300">
+                  {selectedJenjang === 'SMK'
+                    ? '4.'
+                    : selectedJenjang === 'SMP' || selectedJenjang === 'SMA'
+                    ? '3.'
+                    : '2.'}{' '}
+                  FILTER JENIS BUKU:
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJenisBuku('All')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${
+                      selectedJenisBuku === 'All'
+                        ? 'bg-purple-500 text-white border-purple-400 shadow'
+                        : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
+                    }`}
+                  >
+                    Semua Jenis Buku
+                  </button>
+                  {JENIS_BUKU_OPTIONS.map((jb) => {
+                    const active = selectedJenisBuku === jb;
+                    return (
+                      <button
+                        key={jb}
+                        type="button"
+                        onClick={() => setSelectedJenisBuku(jb)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${
+                          active
+                            ? 'bg-purple-500 text-white border-purple-400 shadow'
+                            : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
+                        }`}
+                      >
+                        {jb}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Active Breadcrumb Banner */}
+              {selectedJenjang !== 'All' && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Filter Kurikulum Aktif:{' '}
+                    <strong className="text-white">
+                      {selectedJenjang}
+                      {selectedKelas !== 'All' ? ` → Kelas ${selectedKelas}` : ' → Semua Kelas'}
+                      {selectedJenjang === 'SMK' && selectedJurusan !== 'All'
+                        ? ` → Jurusan ${selectedJurusan} (+ Semua Jurusan)`
+                        : ''}
+                      {selectedJenisBuku !== 'All' ? ` → ${selectedJenisBuku}` : ''}
+                    </strong>
+                  </span>
+                  <span className="font-cinzel font-bold text-emerald-300">
+                    {filteredBooks.length} Buku Ditemukan
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Category Lore Pills */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {SCHOOLS_OF_LORE.map((cat) => {
                 const active = selectedCategory === cat.id;
@@ -4174,7 +3232,7 @@ export default function App() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap border text-left ${
+                    className={`px-4 py-2 rounded-xl text-xs transition-all whitespace-nowrap border text-left ${
                       active
                         ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] font-bold'
                         : 'bg-[#1E1916] text-[#F4E8C1] border-[#D4AF37]/25 hover:border-[#D4AF37]/60'
@@ -4194,20 +3252,24 @@ export default function App() {
               <div className="parchment-card rounded-2xl p-12 text-center space-y-3">
                 <Compass className="w-10 h-10 text-[#D4AF37] mx-auto" />
                 <h3 className="font-cinzel text-lg font-bold text-[#F4E8C1]">
-                  Tidak Ada Grimoire Ditemukan
+                  Tidak Ada Buku pada Kombinasi Filter Ini
                 </h3>
                 <p className="text-xs text-[#A89F91]">
-                  Coba ubah filter kategori atau bersihkan kata kunci pencarian.
+                  Coba ubah filter jenjang/kelas/jurusan atau bersihkan kata kunci pencarian.
                 </p>
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedCategory('All');
+                    setSelectedJenjang('All');
+                    setSelectedKelas('All');
+                    setSelectedJurusan('All');
+                    setSelectedJenisBuku('All');
                     setAvailabilityFilter('all');
                   }}
                   className="px-4 py-2 rounded-xl text-xs font-cinzel bg-[#D4AF37] text-[#12100E] font-bold"
                 >
-                  Reset Filter Vault
+                  Reset Seluruh Filter
                 </button>
               </div>
             ) : (
@@ -4226,7 +3288,7 @@ export default function App() {
                             className={`w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 group`}
                           >
                             <div className="flex justify-between items-center text-[10px] text-[#D4AF37]">
-                              <span>✦</span>
+                              <span>{book.jenjang || 'Umum'}</span>
                               <span>{book.rating}★</span>
                             </div>
                             <div className="text-center my-auto">
@@ -4240,9 +3302,10 @@ export default function App() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 truncate">
-                                {book.category}
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
+                                {book.jenjang || 'Umum'} •{' '}
+                                {book.kelas === 'Semua' ? 'Semua Kelas' : `Kelas ${book.kelas}`}
                               </span>
                               <span
                                 className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
@@ -4252,51 +3315,32 @@ export default function App() {
                                 }`}
                               >
                                 {isAvailable
-                                  ? `Sisa: ${book.availableStock}/${book.totalStock}`
-                                  : 'Stok Habis • Digital Ready'}
+                                  ? `Stok: ${book.availableStock}/${book.totalStock}`
+                                  : 'Stok Habis'}
+                              </span>
+                            </div>
+
+                            {/* Badges Jurusan & Jenis Buku */}
+                            <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                                {book.jurusan || 'Semua Jurusan'}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                {book.jenisBuku || 'Referensi'}
                               </span>
                             </div>
 
                             <h3
                               onClick={() => setInspectedBookId(book.id)}
-                              className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-1"
+                              className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-2"
                             >
                               {book.title}
                             </h3>
-                            <p className="text-xs italic text-[#D4AF37]/90 line-clamp-1">
-                              &ldquo;{book.subtitle}&rdquo;
+                            <p className="text-xs text-[#A89F91] mt-0.5 truncate">
+                              {book.author} • <span className="font-mono text-[#D4AF37]">{book.kodeBuku}</span>
                             </p>
-                            <p className="text-xs text-[#A89F91] mt-0.5">
-                              {book.author}
-                            </p>
-
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {(book.ingredients || []).map((ingId) => {
-                                const ing = INGREDIENTS.find((i) => i.id === ingId);
-                                if (!ing) return null;
-                                return (
-                                  <span
-                                    key={ingId}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10"
-                                    style={{ color: ing.color }}
-                                  >
-                                    {ing.symbol} {ing.indoName.split(' ')[0]}
-                                  </span>
-                                );
-                              })}
-                            </div>
                           </div>
                         </div>
-
-                        {/* Out of Stock Notice */}
-                        {!isAvailable && (
-                          <div className="mt-3 p-2 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[11px] text-amber-300 flex items-center gap-1.5">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            <span>
-                              Stok fisik habis di rak. Silakan baca versi <strong>Astral Grimoire</strong> secara online!
-                            </span>
-                          </div>
-                        )}
 
                         <p className="text-xs text-[#A89F91] mt-3 line-clamp-2 leading-relaxed">
                           {book.synopsis}
@@ -4304,18 +3348,30 @@ export default function App() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="mt-4 pt-3 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
-                        {/* Always available digital reader button */}
-                        <button
-                          type="button"
-                          onClick={() => setReadingBook(book)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
-                        >
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>Baca Digital</span>
-                        </button>
+                      <div className="mt-4 pt-3 border-t border-[#D4AF37]/15 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setReadingBook(book)}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Baca Digital</span>
+                          </button>
 
-                        <div className="flex items-center gap-2">
+                          {book.pdfUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setPdfViewerBook(book)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                              title="Buka PDF Layar Penuh"
+                            >
+                              PDF
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setInspectedBookId(book.id)}
                             className="px-2.5 py-1.5 rounded-lg text-xs border border-[#D4AF37]/40 text-[#F4E8C1] hover:bg-[#D4AF37]/15"
@@ -4323,14 +3379,14 @@ export default function App() {
                             Detail
                           </button>
 
-                          {currentUser.role === 'admin' ? (
+                          {currentUser?.role === 'admin' ? (
                             <button
                               onClick={() => setActiveTab('archivist')}
                               className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
                             >
                               Kelola
                             </button>
-                          ) : currentUser.role === 'guru' ? (
+                          ) : currentUser?.role === 'guru' ? (
                             <button
                               onClick={() => {
                                 setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
@@ -4350,7 +3406,7 @@ export default function App() {
                                   : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
                               }`}
                             >
-                              {isAvailable ? 'Ajukan Pinjam' : 'Stok Habis'}
+                              {isAvailable ? 'Pinjam' : 'Habis'}
                             </button>
                           )}
                         </div>
@@ -4419,6 +3475,8 @@ export default function App() {
             books={books}
             loans={loans}
             members={members}
+            onRegisterMember={handleRegisterMember}
+            onImportBulkMembers={handleImportBulkMembers}
             allPendingLoans={allPendingLoans}
             allApprovedLoans={allApprovedLoans}
             onApproveLoan={handleApproveLoan}
@@ -4432,9 +3490,9 @@ export default function App() {
             onAddNewBook={handleAddNewBook}
             onImportBulkBooks={handleImportBulkBooks}
             isImporting={isImportingBooks}
-            isSupabaseConfigured={isSupabaseConfigured}
-            isSeedingSupabase={isSeedingSupabase}
-            onSeedSupabase={() => executeSeedSupabase(true)}
+            isDatabaseConnected={isDatabaseConnected}
+            isSyncingDatabase={isSyncingDatabase}
+            onRefreshDatabase={() => syncDatabaseData(currentUser, true)}
             onOpenReader={(b) => setReadingBook(b)}
             onOpenPdfViewer={(book) => setPdfViewerBook(book)}
             onInspectBook={(id) => setInspectedBookId(id)}
@@ -4501,8 +3559,17 @@ export default function App() {
               {/* Book Metadata */}
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
-                    {inspectedBook.categoryLabel}
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
+                    {inspectedBook.jenjang || 'Umum'} •{' '}
+                    {inspectedBook.kelas === 'Semua'
+                      ? 'Semua Kelas'
+                      : `Kelas ${inspectedBook.kelas}`}
+                  </span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                    {inspectedBook.jurusan || 'Semua Jurusan'}
+                  </span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    {inspectedBook.jenisBuku || 'Referensi'}
                   </span>
                   <span
                     className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
@@ -4618,6 +3685,20 @@ export default function App() {
               </span>
 
               <div className="flex flex-wrap items-center gap-2">
+                {inspectedBook.pdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfViewerBook(inspectedBook);
+                      setInspectedBookId(null);
+                    }}
+                    className="px-4 py-2.5 rounded-xl font-cinzel font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>Baca Buku (PDF)</span>
+                  </button>
+                )}
+
                 {/* E-Grimoire Reader Button inside modal */}
                 <button
                   type="button"
@@ -4631,7 +3712,7 @@ export default function App() {
                   <span>Buka E-Grimoire Reader</span>
                 </button>
 
-                {currentUser.role === 'admin' ? (
+                {currentUser?.role === 'admin' ? (
                   <button
                     onClick={() => {
                       setActiveTab('archivist');
@@ -4641,7 +3722,7 @@ export default function App() {
                   >
                     Kelola di Archivist
                   </button>
-                ) : currentUser.role === 'guru' ? (
+                ) : currentUser?.role === 'guru' ? (
                   <>
                     <button
                       onClick={() => {
@@ -4822,6 +3903,8 @@ export default function App() {
         isOpen={isGatekeeperOpen}
         onClose={() => setIsGatekeeperOpen(false)}
         currentUser={currentUser}
+        members={members}
+        onRegisterMember={handleRegisterMember}
         onLoginSuccess={handleSwitchRole}
         showToast={showToast}
       />
@@ -4835,6 +3918,7 @@ export default function App() {
         onClose={() => setReadingBook(null)}
         onFinishReading={handleFinishDigitalReading}
         currentUser={currentUser}
+        showToast={showToast}
       />
 
       {/* ==========================================
@@ -4844,6 +3928,7 @@ export default function App() {
         book={pdfViewerBook}
         isOpen={Boolean(pdfViewerBook)}
         onClose={() => setPdfViewerBook(null)}
+        currentUser={currentUser}
       />
 
       {/* ==========================================

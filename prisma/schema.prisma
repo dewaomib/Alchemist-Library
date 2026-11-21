@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  GURU
+  SISWA
+}
+
+model User {
+  id          String       @id @default(cuid())
+  username    String       @unique
+  password    String
+  role        Role         @default(SISWA)
+  nama        String
+  nisn        String?      @unique
+  jenjang     String?
+  kelas       String?
+  jurusan     String?
+  kelas_label String?
+  guild_id    String?      @unique
+  title       String?
+  phone       String?
+  xp          Int          @default(0)
+  level       Int          @default(1)
+  streak_days Int          @default(1)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  loans        Loan[]
+  reading_logs ReadingLog[]
+  bookmarks    Bookmark[]
+  reviews      Review[]
+
+  @@index([role])
+  @@index([jenjang, kelas, jurusan])
+}
+
+model Book {
+  id           String   @id @default(cuid())
+  kode_buku    String   @unique
+  judul        String
+  subtitle     String?
+  penulis      String
+  penerbit     String   @default("-")
+  tahun_terbit Int      @default(2024)
+  jenjang      String   @default("Umum")
+  kelas        String   @default("Semua")
+  jurusan      String   @default("Semua Jurusan")
+  jenis_buku   String   @default("Umum")
+  category     String   @default("Literasi & Umum")
+  stok_fisik   Int      @default(1)
+  total_stok   Int      @default(1)
+  link_cover   String?
+  link_pdf     String?
+  ddc          String   @default("000")
+  call_number  String?
+  shelf        String   @default("Rak A1")
+  isbn         String?
+  pages        Int      @default(120)
+  xp_reward    Int      @default(50)
+  rating       Float    @default(4.8)
+  synopsis     String?
+  chapters     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  loans        Loan[]
+  reading_logs ReadingLog[]
+  bookmarks    Bookmark[]
+  reviews      Review[]
+
+  @@index([jenjang, kelas, jurusan])
+  @@index([jenis_buku])
+}
+
+model Loan {
+  id                String    @id @default(cuid())
+  userId            String
+  bookId            String
+  loan_type         String    @default("STUDENT_PHYSICAL")
+  status            String    @default("PENDING")
+  jumlah_eksemplar  Int       @default(1)
+  kelas_sasaran     String?
+  jam_pelajaran     String?
+  durasi_hari       Int       @default(7)
+  tanggal_pinjam    DateTime  @default(now())
+  tanggal_disetujui DateTime?
+  jatuh_tempo       DateTime?
+  tanggal_kembali   DateTime?
+  catatan           String?
+  alasan_tolak      String?
+  metode_transaksi  String    @default("CATALOG")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([bookId, status])
+  @@index([loan_type, status])
+}
+
+model ReadingLog {
+  id               String   @id @default(cuid())
+  userId           String
+  bookId           String
+  halaman_terakhir Int      @default(0)
+  kutipan_favorit  String
+  ringkasan_hikmah String
+  jumlah_kata      Int      @default(0)
+  nilai_guru       Int?
+  catatan_guru     String?
+  status_penilaian String   @default("MENUNGGU_VALIDASI")
+  dinilai_oleh     String?
+  tanggal_baca     DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status_penilaian])
+  @@index([bookId])
+}
+
+model Bookmark {
+  id               String   @id @default(cuid())
+  userId           String
+  bookId           String
+  halaman_terakhir Int      @default(1)
+  source           String   @default("text")
+  chapter_index    Int      @default(0)
+  chapter_title    String?
+  total_chapters   Int      @default(1)
+  scroll_ratio     Float    @default(0)
+  progress_percent Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId, source])
+  @@index([userId, bookId])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  userId        String?
+  bookId        String
+  reviewer_name String
+  rating        Int      @default(5)
+  comment       String
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  book Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+}

@@ -20,9 +20,13 @@
 - **Fitur Pembaca Interaktif:**
   - Navigasi halaman/bab (Prev / Next) dengan indikator bab.
   - Pengatur ukuran huruf font (S, M, L, XL).
-  - Mode tema membaca: *Aged Parchment* (terang klasik) atau *Midnight Grimoire* (gelap mistis).
+  - Toggle tema baca **Obsidian Wood** (gelap, default) ⇄ **Warm Parchment** (terang `#F4ECD8` / `#2C241B`), tersimpan per pengguna.
+  - **Narator Bahasa Indonesia** (*Dengarkan Bab Ini*) dengan kontrol Play, Pause, Lanjutkan, dan Stop. Suara `id-ID` diprioritaskan; narasi berhenti otomatis saat pindah bab atau menutup reader.
+  - **Bookmark otomatis**: bab dan posisi scroll tersimpan saat berpindah bab, menutup reader, atau meninggalkan halaman. Saat dibuka kembali muncul toast *"Melanjutkan dari halaman X"*.
   - Indikator kemajuan membaca (*Progress Bar*).
   - Tombol **Klaim +75 XP** di halaman terakhir setelah menuntaskan pembacaan.
+- **Penyimpanan progres:** LocalStorage menjadi sumber utama, dengan sinkronisasi Supabase *best-effort* (tabel `reading_progress`, unik per `user_id + book_id + source`) yang aktif otomatis setelah `.env` Supabase diisi.
+- **Batasan PDF:** viewer PDF tetap memakai iframe tautan eksternal, sehingga hanya mendukung tema/filter anti-silau dan penanda *"Terakhir dibuka"*. Nomor halaman dan narasi PDF belum tersedia.
 
 ### 3. ⚖️ Alur Persetujuan Peminjaman (Approval Workflow)
 - **Pengajuan Siswa:** Siswa meminjam buku perorangan (`quantity: 1`). Pengajuan berstatus `'pending'` masuk ke antrean Admin.
@@ -220,6 +224,8 @@ CREATE POLICY "Public demo read/write reading_logs" ON public.reading_logs
 ```
 
 > Semua kolom/tabel baru bersifat aditif. Aplikasi tetap berjalan penuh dalam *Local Grimoire Mode* tanpa Supabase, termasuk jurnal literasi, paket kelas, dan leaderboard.
+>
+> **Bookmark bacaan:** jalankan juga `supabase/reading_progress.sql` (idempoten) bila database sudah dibuat sebelum fitur ini ada. Tabel ini menyimpan progres teks/PDF per pengguna dan buku, dan dipakai otomatis oleh reader ketika Supabase aktif.
 
 ### 5. Data Demo & Kode Uji Coba
 - **Anggota contoh:** 25 siswa + 3 guru di `src/data/sampleMembers.js` (kartu siswa mis. `ARC-2026-089`, `ARC-2026-001`; kartu guru mis. `GT-2026-001`).
