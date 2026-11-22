@@ -825,7 +825,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       try {
         confetti({
@@ -834,7 +834,7 @@ export default function App() {
           origin: { y: 0.6 },
           colors: ['#10B981', '#D4AF37', '#8B5CF6']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         'Peminjaman Disetujui!',
@@ -892,7 +892,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       try {
         confetti({
@@ -901,7 +901,7 @@ export default function App() {
           origin: { y: 0.65 },
           colors: ['#D4AF37', '#10B981']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         'Pengembalian Telah Diverifikasi!',
@@ -976,7 +976,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       try {
         confetti({
@@ -985,7 +985,7 @@ export default function App() {
           origin: { y: 0.65 },
           colors: ['#10B981', '#D4AF37']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         'Transaksi Kilat Berhasil!',
@@ -1198,12 +1198,12 @@ export default function App() {
           setStudentXp(xpRes.user.xp);
           setCurrentUser(xpRes.user);
         }
-      } catch {}
+      } catch { }
 
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       showToast(
         'Permintaan Pinjam Terkirim! (+15 XP)',
@@ -1218,7 +1218,7 @@ export default function App() {
           origin: { y: 0.7 },
           colors: ['#D4AF37', '#10B981']
         });
-      } catch {}
+      } catch { }
     } catch (err) {
       showToast(
         'Pengajuan Pinjam Gagal',
@@ -1289,7 +1289,7 @@ export default function App() {
           origin: { y: 0.65 },
           colors: ['#38BDF8', '#D4AF37']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         'Permintaan Pinjam Kelas Terkirim!',
@@ -1344,7 +1344,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       showToast(
         existingLog ? 'Jurnal Literasi Diperbarui!' : 'Jurnal Literasi Tersimpan!',
@@ -1461,7 +1461,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       try {
         confetti({
@@ -1470,7 +1470,7 @@ export default function App() {
           origin: { y: 0.6 },
           colors: ['#D4AF37', '#38BDF8', '#10B981']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         'Paket Kelas Aktif di PostgreSQL!',
@@ -1497,7 +1497,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       showToast(
         'Paket Kelas Selesai',
@@ -1524,7 +1524,7 @@ export default function App() {
           updatedXp = res.user.xp;
           setCurrentUser(res.user);
         }
-      } catch {}
+      } catch { }
     }
 
     setStudentXp(updatedXp);
@@ -1594,7 +1594,7 @@ export default function App() {
       try {
         const lbRes = await api.getLeaderboard();
         setServerLeaderboard(lbRes?.leaderboard || []);
-      } catch {}
+      } catch { }
 
       try {
         confetti({
@@ -1603,7 +1603,7 @@ export default function App() {
           origin: { y: 0.6 },
           colors: ['#D4AF37', '#10B981', '#8B5CF6']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         `Scholar's Note Tersimpan! (+${earnedXp} XP)`,
@@ -1653,8 +1653,7 @@ export default function App() {
       setDetailReviewRating(5);
       showToast(
         'Ulasan & Rating Tersimpan!',
-        `Rating rata-rata buku "${inspectedBook.title}" kini diperbarui menjadi ${
-          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : '0.0 ★'
+        `Rating rata-rata buku "${inspectedBook.title}" kini diperbarui menjadi ${res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : '0.0 ★'
         }.`,
         'emerald'
       );
@@ -1676,8 +1675,7 @@ export default function App() {
       setModerationConfirm(null);
       showToast(
         'Komentar Dihapus Permanen',
-        `Ulasan dari ${review.user} telah dihapus dari database & rata-rata rating buku dihitung ulang (${
-          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
+        `Ulasan dari ${review.user} telah dihapus dari database & rata-rata rating buku dihitung ulang (${res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
         }).`,
         'emerald'
       );
@@ -1699,8 +1697,7 @@ export default function App() {
       setModerationConfirm(null);
       showToast(
         'Rating Ulasan Dihapus',
-        `Rating tidak wajar dari ${review.user} telah dihapus & rata-rata rating buku dihitung ulang (${
-          res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
+        `Rating tidak wajar dari ${review.user} telah dihapus & rata-rata rating buku dihitung ulang (${res?.book?.rating > 0 ? `${Number(res.book.rating).toFixed(1)} ★` : 'Belum ada rating'
         }).`,
         'gold'
       );
@@ -1752,7 +1749,7 @@ export default function App() {
           updatedXp = res.user.xp;
           setCurrentUser(res.user);
         }
-      } catch {}
+      } catch { }
     }
     setStudentXp(updatedXp);
 
@@ -1847,9 +1844,8 @@ export default function App() {
 
       const firstId = selectedIngredients[0];
       const lastId = selectedIngredients[selectedIngredients.length - 1];
-      const potionName = `Elixir of ${potionPrefixes[firstId] || 'Arcane'} ${
-        potionNouns[lastId] || 'Wisdom'
-      }`;
+      const potionName = `Elixir of ${potionPrefixes[firstId] || 'Arcane'} ${potionNouns[lastId] || 'Wisdom'
+        }`;
 
       setIsBrewing(false);
       const nextBrewCount = potionsBrewedCount + 1;
@@ -1877,7 +1873,7 @@ export default function App() {
           origin: { y: 0.65 },
           colors: ['#10B981', '#8B5CF6', '#D4AF37']
         });
-      } catch {}
+      } catch { }
 
       showToast(
         `${potionName} Selesai Diracik!`,
@@ -1896,17 +1892,17 @@ export default function App() {
 
     const customDigitalContent = newBookForm.digitalContentText.trim()
       ? [
-          {
-            chapterNumber: 1,
-            title: 'Bab I: Inisiasi Manuskrip',
-            content: newBookForm.digitalContentText.trim()
-          }
-        ]
+        {
+          chapterNumber: 1,
+          title: 'Bab I: Inisiasi Manuskrip',
+          content: newBookForm.digitalContentText.trim()
+        }
+      ]
       : getDigitalTomeContent({
-          title: newBookForm.title,
-          author: newBookForm.author,
-          category: newBookForm.category
-        });
+        title: newBookForm.title,
+        author: newBookForm.author,
+        category: newBookForm.category
+      });
 
     const totalQty = Number(newBookForm.totalStock) || 5;
     const availQty =
@@ -2160,177 +2156,174 @@ export default function App() {
               borderColor: 'var(--theme-border)'
             }}
           >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between py-3 gap-3">
-            {/* Brand Logo & Subtitle */}
-            <button
-              onClick={() => setActiveTab(currentUser?.role === 'admin' ? 'archivist' : 'hall')}
-              className="flex items-center gap-3 text-left group focus:outline-none"
-            >
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-105 shadow-md"
-                style={{
-                  background: 'var(--theme-brand-icon-bg)',
-                  borderColor: 'var(--theme-border-strong)'
-                }}
-              >
-                <FlaskConical className="w-6 h-6 text-[#D4AF37]" />
-              </div>
-              <div>
-                <span className="font-cinzel font-bold text-base sm:text-lg tracking-wider text-[#F4E8C1] group-hover:text-[#D4AF37] transition-colors block">
-                  THE GRAND ALCHEMIST&apos;S ARCHIVE
-                </span>
-                <p className="text-xs text-[#A89F91]">
-                  Pustaka Agung Alkemis • Perpustakaan SMA Nusantara
-                </p>
-              </div>
-            </button>
-
-            {/* PostgreSQL + Prisma Status Badge */}
-            <div className="order-2 lg:order-2 flex items-center">
-              {isDatabaseConnected ? (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.35)]">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>PostgreSQL + Prisma Connected</span>
-                </span>
-              ) : (
-                <span
-                  className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-500/40 flex items-center gap-1.5"
-                  title="Menghubungkan ke server PostgreSQL + Prisma"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>{isCheckingAuth ? 'Memuat Database...' : 'Koneksi DB Terputus'}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Role-Aware Navigation Tabs */}
-            <nav className="flex items-center gap-1 sm:gap-2 order-4 lg:order-3 w-full lg:w-auto justify-center border-t lg:border-t-0 pt-2 lg:pt-0 border-[#D4AF37]/15 overflow-x-auto">
-              {navTabs.map((tab) => {
-                const IconComponent = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative px-3 sm:px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${
-                      isActive
-                        ? 'bg-[#D4AF37]/20 text-[#F4E8C1] border border-[#D4AF37]'
-                        : 'text-[#A89F91] hover:text-[#F4E8C1] hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <IconComponent
-                      className={`w-4 h-4 ${
-                        isActive
-                          ? 'text-[#D4AF37]'
-                          : tab.highlight
-                          ? 'text-emerald-400'
-                          : tab.isGuru
-                          ? 'text-sky-400'
-                          : tab.isAdmin
-                          ? 'text-amber-400'
-                          : 'text-[#A89F91]'
-                      }`}
-                    />
-                    <div className="text-left">
-                      <span className="font-cinzel font-semibold block leading-tight">
-                        {tab.label}
-                      </span>
-                      <span className="text-[10px] text-[#A89F91] hidden sm:block">
-                        {tab.sub}
-                      </span>
-                    </div>
-
-                    {tab.highlight && !isActive && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    )}
-
-                    {tab.badgeCount > 0 && (
-                      <span
-                        className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full text-[#12100E] ${
-                          tab.isAdmin
-                            ? 'bg-amber-400'
-                            : tab.isGuru
-                            ? 'bg-sky-400'
-                            : 'bg-emerald-400'
-                        }`}
-                      >
-                        {tab.badgeCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Theme Toggle + Current Active User Profile Pill */}
-            <div className="order-3 lg:order-4 flex items-center gap-2">
-              <ThemeToggle compact />
-
-              {currentUser ? (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-wrap items-center justify-between py-3 gap-3">
+                {/* Brand Logo & Subtitle */}
                 <button
-                  onClick={() => {
-                    if (currentUser?.role === 'admin') setActiveTab('archivist');
-                    else if (currentUser?.role === 'guru') setActiveTab('mentor');
-                    else setActiveTab('sanctum');
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all hover:border-[#D4AF37]"
-                  style={{
-                    backgroundColor: 'var(--theme-surface)',
-                    borderColor: 'var(--theme-border-strong)'
-                  }}
-                  title="Buka Ruang Profil Role Ini"
+                  onClick={() => setActiveTab(currentUser?.role === 'admin' ? 'archivist' : 'hall')}
+                  className="flex items-center gap-3 text-left group focus:outline-none"
                 >
                   <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-105 shadow-md"
                     style={{
-                      backgroundColor: `${currentUser.color || '#D4AF37'}20`,
-                      borderColor: `${currentUser.color || '#D4AF37'}60`
+                      background: 'var(--theme-brand-icon-bg)',
+                      borderColor: 'var(--theme-border-strong)'
                     }}
                   >
-                    <span>{currentUser.avatar || '📚'}</span>
+                    <FlaskConical className="w-6 h-6 text-[#D4AF37]" />
                   </div>
-                  <div className="text-left hidden sm:block">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-cinzel font-bold text-[#F4E8C1] truncate max-w-[120px]">
-                        {(currentUser?.name || currentUser.username || 'Pengguna').split(' ')[0]}
-                      </span>
-                      <span
-                        className="text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase"
-                        style={{
-                          backgroundColor: `${currentUser.color || '#D4AF37'}25`,
-                          color: currentUser.color || '#D4AF37'
-                        }}
-                      >
-                        {currentUser.role}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-[#A89F91] truncate max-w-[140px]">
-                      {currentUser.title || currentUser.classLabel}
+                  <div>
+                    <span className="font-cinzel font-bold text-base sm:text-lg tracking-wider text-[#F4E8C1] group-hover:text-[#D4AF37] transition-colors block">
+                      THE GRAND ALCHEMIST&apos;S ARCHIVE
+                    </span>
+                    <p className="text-xs text-[#A89F91]">
+                      Pustaka Agung Alkemis • Perpustakaan SMA Nusantara
                     </p>
                   </div>
                 </button>
-              ) : (
-                <button
-                  onClick={() => setIsGatekeeperOpen(true)}
-                  className="px-3.5 py-2 rounded-xl border border-[#D4AF37]/60 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-xs font-cinzel font-bold text-[#F4E8C1] transition-all flex items-center gap-2"
-                >
-                  <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  <span>Masuk Akun</span>
-                </button>
-              )}
 
-              <button
-                onClick={() => setIsGatekeeperOpen(true)}
-                className="p-2 rounded-xl bg-[#1E1916] border border-white/10 hover:border-[#D4AF37] text-[#A89F91] hover:text-[#D4AF37] transition-all"
-                title="Buka Modal Login Guild Gatekeeper"
-              >
-                <KeyRound className="w-4 h-4" />
-              </button>
+                {/* PostgreSQL + Prisma Status Badge */}
+                <div className="order-2 lg:order-2 flex items-center">
+                  {isDatabaseConnected ? (
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/50 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>PostgreSQL + Prisma Connected</span>
+                    </span>
+                  ) : (
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-500/40 flex items-center gap-1.5"
+                      title="Menghubungkan ke server PostgreSQL + Prisma"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span>{isCheckingAuth ? 'Memuat Database...' : 'Koneksi DB Terputus'}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Role-Aware Navigation Tabs */}
+                <nav className="flex items-center gap-1 sm:gap-2 order-4 lg:order-3 w-full lg:w-auto justify-center border-t lg:border-t-0 pt-2 lg:pt-0 border-[#D4AF37]/15 overflow-x-auto">
+                  {navTabs.map((tab) => {
+                    const IconComponent = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`relative px-3 sm:px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${isActive
+                          ? 'bg-[#D4AF37]/20 text-[#F4E8C1] border border-[#D4AF37]'
+                          : 'text-[#A89F91] hover:text-[#F4E8C1] hover:bg-white/5 border border-transparent'
+                          }`}
+                      >
+                        <IconComponent
+                          className={`w-4 h-4 ${isActive
+                            ? 'text-[#D4AF37]'
+                            : tab.highlight
+                              ? 'text-emerald-400'
+                              : tab.isGuru
+                                ? 'text-sky-400'
+                                : tab.isAdmin
+                                  ? 'text-amber-400'
+                                  : 'text-[#A89F91]'
+                            }`}
+                        />
+                        <div className="text-left">
+                          <span className="font-cinzel font-semibold block leading-tight">
+                            {tab.label}
+                          </span>
+                          <span className="text-[10px] text-[#A89F91] hidden sm:block">
+                            {tab.sub}
+                          </span>
+                        </div>
+
+                        {tab.highlight && !isActive && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        )}
+
+                        {tab.badgeCount > 0 && (
+                          <span
+                            className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full text-[#12100E] ${tab.isAdmin
+                              ? 'bg-amber-400'
+                              : tab.isGuru
+                                ? 'bg-sky-400'
+                                : 'bg-emerald-400'
+                              }`}
+                          >
+                            {tab.badgeCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* Theme Toggle + Current Active User Profile Pill */}
+                <div className="order-3 lg:order-4 flex items-center gap-2">
+                  <ThemeToggle compact />
+
+                  {currentUser ? (
+                    <button
+                      onClick={() => {
+                        if (currentUser?.role === 'admin') setActiveTab('archivist');
+                        else if (currentUser?.role === 'guru') setActiveTab('mentor');
+                        else setActiveTab('sanctum');
+                      }}
+                      className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all hover:border-[#D4AF37]"
+                      style={{
+                        backgroundColor: 'var(--theme-surface)',
+                        borderColor: 'var(--theme-border-strong)'
+                      }}
+                      title="Buka Ruang Profil Role Ini"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border"
+                        style={{
+                          backgroundColor: `${currentUser.color || '#D4AF37'}20`,
+                          borderColor: `${currentUser.color || '#D4AF37'}60`
+                        }}
+                      >
+                        <span>{currentUser.avatar || '📚'}</span>
+                      </div>
+                      <div className="text-left hidden sm:block">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-cinzel font-bold text-[#F4E8C1] truncate max-w-[120px]">
+                            {(currentUser?.name || currentUser.username || 'Pengguna').split(' ')[0]}
+                          </span>
+                          <span
+                            className="text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase"
+                            style={{
+                              backgroundColor: `${currentUser.color || '#D4AF37'}25`,
+                              color: currentUser.color || '#D4AF37'
+                            }}
+                          >
+                            {currentUser.role}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#A89F91] truncate max-w-[140px]">
+                          {currentUser.title || currentUser.classLabel}
+                        </p>
+                      </div>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsGatekeeperOpen(true)}
+                      className="px-3.5 py-2 rounded-xl border border-[#D4AF37]/60 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-xs font-cinzel font-bold text-[#F4E8C1] transition-all flex items-center gap-2"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" />
+                      <span>Masuk Akun</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setIsGatekeeperOpen(true)}
+                    className="p-2 rounded-xl bg-[#1E1916] border border-white/10 hover:border-[#D4AF37] text-[#A89F91] hover:text-[#D4AF37] transition-all"
+                    title="Buka Modal Login Guild Gatekeeper"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </header>
+          </header>
         </>
       )}
 
@@ -2347,8 +2340,8 @@ export default function App() {
                 toast.type === 'emerald'
                   ? '#10B981'
                   : toast.type === 'purple'
-                  ? '#8B5CF6'
-                  : 'var(--theme-accent)',
+                    ? '#8B5CF6'
+                    : 'var(--theme-accent)',
               boxShadow: 'var(--theme-shadow-modal)'
             }}
           >
@@ -2359,8 +2352,8 @@ export default function App() {
                   toast.type === 'emerald'
                     ? 'rgba(16, 185, 129, 0.15)'
                     : toast.type === 'purple'
-                    ? 'rgba(139, 92, 246, 0.15)'
-                    : 'rgba(212, 175, 55, 0.15)'
+                      ? 'rgba(139, 92, 246, 0.15)'
+                      : 'rgba(212, 175, 55, 0.15)'
               }}
             >
               <Sparkles
@@ -2370,8 +2363,8 @@ export default function App() {
                     toast.type === 'emerald'
                       ? '#10B981'
                       : toast.type === 'purple'
-                      ? '#8B5CF6'
-                      : '#D4AF37'
+                        ? '#8B5CF6'
+                        : '#D4AF37'
                 }}
               />
             </div>
@@ -2446,211 +2439,1021 @@ export default function App() {
         />
       ) : (
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ==========================================
+          {/* ==========================================
             VIEW 1: THE GREAT HALL (BERANDA)
         ========================================== */}
-        {activeTab === 'hall' && (
-          <div className="space-y-12">
-            {/* HERO SECTION */}
-            <section
-              className="relative rounded-2xl overflow-hidden border p-6 sm:p-10 lg:p-12"
-              style={{
-                background: 'var(--theme-hero-bg)',
-                borderColor: 'var(--theme-hero-border)'
-              }}
-            >
-              <div className="pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full border border-[#D4AF37]/15 flex items-center justify-center animate-rune-spin">
-                <div className="w-60 h-60 rounded-full border border-dashed border-emerald-500/20" />
-              </div>
+          {activeTab === 'hall' && (
+            <div className="space-y-12">
+              {/* HERO SECTION */}
+              <section
+                className="relative rounded-2xl overflow-hidden border p-6 sm:p-10 lg:p-12"
+                style={{
+                  background: 'var(--theme-hero-bg)',
+                  borderColor: 'var(--theme-hero-border)'
+                }}
+              >
+                <div className="pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full border border-[#D4AF37]/15 flex items-center justify-center animate-rune-spin">
+                  <div className="w-60 h-60 rounded-full border border-dashed border-emerald-500/20" />
+                </div>
 
-              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-7 space-y-5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>GRAND ARCHIVE OF SCHOLARS • SISTEM 3 ROLE</span>
-                  </div>
+                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                  <div className="lg:col-span-7 space-y-5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>GRAND ARCHIVE OF SCHOLARS • SISTEM 3 ROLE</span>
+                    </div>
 
-                  <h1 className="font-cinzel text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight gold-gradient-text">
-                    Temukan Grimoire Pengetahuan &amp; Baca Digital Secara Instan
-                  </h1>
+                    <h1 className="font-cinzel text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight gold-gradient-text">
+                      Temukan Grimoire Pengetahuan &amp; Baca Digital Secara Instan
+                    </h1>
 
-                  <p className="text-sm sm:text-base text-[#A89F91] max-w-2xl leading-relaxed">
-                    Selamat datang di{' '}
-                    <span className="text-[#F4E8C1] font-medium">
-                      The Grand Alchemist&apos;s Archive
-                    </span>
-                    . Telusuri ribuan pustaka sekolah melalui{' '}
-                    <em>Scrying Mirror</em>, racik esensi minatmu di kuali alkimia, pinjam eksemplar fisik di rak, atau nikmati pembacaan langsung di dalam E-Grimoire Reader!
-                  </p>
+                    <p className="text-sm sm:text-base text-[#A89F91] max-w-2xl leading-relaxed">
+                      Selamat datang di{' '}
+                      <span className="text-[#F4E8C1] font-medium">
+                        The Grand Alchemist&apos;s Archive
+                      </span>
+                      . Telusuri ribuan pustaka sekolah melalui{' '}
+                      <em>Scrying Mirror</em>, racik esensi minatmu di kuali alkimia, pinjam eksemplar fisik di rak, atau nikmati pembacaan langsung di dalam E-Grimoire Reader!
+                    </p>
 
-                  {/* SCRYING MIRROR SEARCH */}
-                  <div className="pt-2 max-w-xl">
-                    <label className="block text-xs font-cinzel tracking-wider text-[#D4AF37] mb-2">
-                      SCRYING MIRROR (CARI JUDUL BUKU, PENULIS, ATAU KATA KUNCI):
-                    </label>
-                    <div className="relative flex items-center">
-                      <Search className="w-5 h-5 text-[#D4AF37] absolute left-4 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Ketik 'Bumi', 'Fisika', 'Laskar Pelangi', atau 'Sherlock'..."
-                        className="w-full pl-12 pr-32 py-3.5 rounded-xl text-sm bg-[#12100E]/90 border border-[#D4AF37]/40 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]"
-                      />
-                      {searchQuery && (
+                    {/* SCRYING MIRROR SEARCH */}
+                    <div className="pt-2 max-w-xl">
+                      <label className="block text-xs font-cinzel tracking-wider text-[#D4AF37] mb-2">
+                        SCRYING MIRROR (CARI JUDUL BUKU, PENULIS, ATAU KATA KUNCI):
+                      </label>
+                      <div className="relative flex items-center">
+                        <Search className="w-5 h-5 text-[#D4AF37] absolute left-4 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Ketik 'Bumi', 'Fisika', 'Laskar Pelangi', atau 'Sherlock'..."
+                          className="w-full pl-12 pr-32 py-3.5 rounded-xl text-sm bg-[#12100E]/90 border border-[#D4AF37]/40 text-[#F4E8C1] placeholder-[#A89F91]/60 focus:outline-none focus:border-[#D4AF37]"
+                        />
+                        {searchQuery && (
+                          <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-28 text-[#A89F91] hover:text-[#F4E8C1] p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
-                          onClick={() => setSearchQuery('')}
-                          className="absolute right-28 text-[#A89F91] hover:text-[#F4E8C1] p-1"
+                          onClick={() => setActiveTab('vault')}
+                          className="absolute right-2 px-4 py-2 rounded-lg text-xs font-cinzel font-bold bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-colors"
                         >
-                          <X className="w-4 h-4" />
+                          Buka Vault
                         </button>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* Hero Actions */}
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <button
+                        onClick={() => setActiveTab('mixer')}
+                        className="px-5 py-3 rounded-xl font-cinzel font-bold text-sm flex items-center gap-2.5 text-[#12100E] shadow-lg transition-transform hover:scale-[1.02]"
+                        style={{
+                          background: 'linear-gradient(135deg, #10B981 0%, #D4AF37 100%)'
+                        }}
+                      >
+                        <FlaskConical className="w-5 h-5" />
+                        <span>Racik Buku di Alchemical Mixer</span>
+                      </button>
+
                       <button
                         onClick={() => setActiveTab('vault')}
-                        className="absolute right-2 px-4 py-2 rounded-lg text-xs font-cinzel font-bold bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 transition-colors"
+                        className="px-5 py-3 rounded-xl font-cinzel font-semibold text-sm flex items-center gap-2 border border-[#D4AF37]/50 text-[#F4E8C1] hover:bg-[#D4AF37]/10 transition-colors"
                       >
-                        Buka Vault
+                        <BookOpen className="w-4 h-4 text-[#D4AF37]" />
+                        <span>Jelajahi Vault of Tomes</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Hero Actions */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <button
-                      onClick={() => setActiveTab('mixer')}
-                      className="px-5 py-3 rounded-xl font-cinzel font-bold text-sm flex items-center gap-2.5 text-[#12100E] shadow-lg transition-transform hover:scale-[1.02]"
-                      style={{
-                        background: 'linear-gradient(135deg, #10B981 0%, #D4AF37 100%)'
-                      }}
-                    >
-                      <FlaskConical className="w-5 h-5" />
-                      <span>Racik Buku di Alchemical Mixer</span>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveTab('vault')}
-                      className="px-5 py-3 rounded-xl font-cinzel font-semibold text-sm flex items-center gap-2 border border-[#D4AF37]/50 text-[#F4E8C1] hover:bg-[#D4AF37]/10 transition-colors"
-                    >
-                      <BookOpen className="w-4 h-4 text-[#D4AF37]" />
-                      <span>Jelajahi Vault of Tomes</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Right Side Stats & Recommender Teaser */}
-                <div className="lg:col-span-5">
-                  <div className="parchment-card rounded-2xl p-6 space-y-5 relative overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-4">
-                      <div>
-                        <span className="text-xs uppercase tracking-widest text-emerald-400 font-semibold">
-                          ALCHEMICAL RECOMMENDER
-                        </span>
-                        <h3 className="font-cinzel text-lg font-bold text-[#F4E8C1]">
-                          The Transmutation Table
-                        </h3>
+                  {/* Right Side Stats & Recommender Teaser */}
+                  <div className="lg:col-span-5">
+                    <div className="parchment-card rounded-2xl p-6 space-y-5 relative overflow-hidden">
+                      <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-4">
+                        <div>
+                          <span className="text-xs uppercase tracking-widest text-emerald-400 font-semibold">
+                            ALCHEMICAL RECOMMENDER
+                          </span>
+                          <h3 className="font-cinzel text-lg font-bold text-[#F4E8C1]">
+                            The Transmutation Table
+                          </h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 animate-float">
+                          <FlaskConical className="w-5 h-5" />
+                        </div>
                       </div>
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 animate-float">
-                        <FlaskConical className="w-5 h-5" />
+
+                      <p className="text-xs text-[#A89F91] leading-relaxed">
+                        Pilih esensi minat di bawah untuk langsung mencoba kuali alkimia:
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {INGREDIENTS.slice(0, 4).map((ing) => (
+                          <button
+                            key={ing.id}
+                            onClick={() => {
+                              setSelectedIngredients([ing.id]);
+                              setActiveTab('mixer');
+                            }}
+                            className="p-2.5 rounded-xl border border-white/10 bg-black/30 hover:border-[#D4AF37]/40 text-left transition-all flex items-center gap-2"
+                          >
+                            <span
+                              className="text-base w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: ing.bgGlow, color: ing.color }}
+                            >
+                              {ing.symbol}
+                            </span>
+                            <div className="overflow-hidden">
+                              <p className="text-xs font-semibold text-[#F4E8C1] truncate">
+                                {ing.name}
+                              </p>
+                              <p className="text-[10px] text-[#A89F91] truncate">
+                                {ing.indoName}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Telemetry Stats */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#D4AF37]/20 text-center">
+                        <div className="p-2 rounded-lg bg-black/30">
+                          <p className="font-cinzel font-bold text-lg text-[#D4AF37]">
+                            {books.length}
+                          </p>
+                          <p className="text-[10px] text-[#A89F91]">Total Tomes</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-black/30">
+                          <p className="font-cinzel font-bold text-lg text-emerald-400">
+                            {books.filter((b) => b.availableStock > 0).length}
+                          </p>
+                          <p className="text-[10px] text-[#A89F91]">Ada di Rak</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-black/30">
+                          <p className="font-cinzel font-bold text-lg text-purple-400">
+                            {potionsBrewedCount}
+                          </p>
+                          <p className="text-[10px] text-[#A89F91]">Potions Brewed</p>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </section>
 
-                    <p className="text-xs text-[#A89F91] leading-relaxed">
-                      Pilih esensi minat di bawah untuk langsung mencoba kuali alkimia:
-                    </p>
+              {/* LEADERBOARD KELAS TER-LITERAT */}
+              <ClassLeaderboard
+                leaderboard={classLeaderboard}
+                monthLabel={formatMonthID(currentMonthKey)}
+                highlightClass={currentUserClassName}
+              />
 
-                    <div className="grid grid-cols-2 gap-2">
-                      {INGREDIENTS.slice(0, 4).map((ing) => (
-                        <button
-                          key={ing.id}
-                          onClick={() => {
-                            setSelectedIngredients([ing.id]);
-                            setActiveTab('mixer');
-                          }}
-                          className="p-2.5 rounded-xl border border-white/10 bg-black/30 hover:border-[#D4AF37]/40 text-left transition-all flex items-center gap-2"
+              {/* LEGENDARY GRIMOIRES SHOWCASE */}
+              <section className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-[#D4AF37] font-cinzel tracking-widest uppercase">
+                      <Star className="w-3.5 h-3.5 fill-[#D4AF37]" />
+                      <span>CURATED BY GRAND ARCHIVISTS</span>
+                    </div>
+                    <h2 className="font-cinzel text-2xl sm:text-3xl font-bold text-[#F4E8C1] mt-1">
+                      Legendary Grimoires (Koleksi Unggulan)
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('vault')}
+                    className="text-sm font-cinzel text-[#D4AF37] hover:underline flex items-center gap-1"
+                  >
+                    <span>Lihat Seluruh 12 Grimoire di Vault</span>
+                    <span>→</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {books
+                    .filter((b) => b.popular)
+                    .slice(0, 6)
+                    .map((book) => {
+                      const isAvailable = book.availableStock > 0;
+                      const visual = getBookCoverVisual(book);
+                      return (
+                        <div
+                          key={book.id}
+                          className="parchment-card rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg"
                         >
-                          <span
-                            className="text-base w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: ing.bgGlow, color: ing.color }}
-                          >
-                            {ing.symbol}
-                          </span>
-                          <div className="overflow-hidden">
-                            <p className="text-xs font-semibold text-[#F4E8C1] truncate">
-                              {ing.name}
-                            </p>
-                            <p className="text-[10px] text-[#A89F91] truncate">
-                              {ing.indoName}
+                          <div>
+                            <div className="flex gap-4">
+                              <div
+                                onClick={() => setInspectedBookId(book.id)}
+                                className={`book-cover-art w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient || visual.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 relative overflow-hidden group shadow-md`}
+                                style={{ background: book.coverGradientStyle || visual.gradient }}
+                              >
+                                {book.coverUrl ? (
+                                  <img
+                                    src={book.coverUrl}
+                                    alt={book.title}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  />
+                                ) : null}
+                                <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37]/90 font-cinzel relative z-10 pl-0.5">
+                                  <span>✦</span>
+                                  <span>{book.rating ? `${Number(book.rating).toFixed(1)}★` : 'Baru'}</span>
+                                </div>
+                                <div className="text-center my-auto relative z-10">
+                                  <span className="book-cover-rune text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
+                                    {book.coverRune || visual.rune}
+                                  </span>
+                                </div>
+                                <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1]/90 line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
+                                  {book.title}
+                                </div>
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 truncate">
+                                    {book.category}
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isAvailable
+                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                      }`}
+                                  >
+                                    {isAvailable
+                                      ? `Sisa: ${book.availableStock}/${book.totalStock}`
+                                      : 'Stok Fisik Habis'}
+                                  </span>
+                                </div>
+
+                                <h3
+                                  onClick={() => setInspectedBookId(book.id)}
+                                  className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-1"
+                                >
+                                  {book.title}
+                                </h3>
+                                <p className="text-xs italic text-[#D4AF37]/90 line-clamp-1">
+                                  &ldquo;{book.subtitle}&rdquo;
+                                </p>
+                                <p className="text-xs text-[#A89F91] mt-1 truncate">
+                                  Karya: {book.author}
+                                </p>
+
+                                <div className="flex flex-wrap gap-1 mt-2.5">
+                                  {(book.ingredients || []).map((ingId) => {
+                                    const ing = INGREDIENTS.find((i) => i.id === ingId);
+                                    if (!ing) return null;
+                                    return (
+                                      <span
+                                        key={ingId}
+                                        className="text-[10px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10"
+                                        style={{ color: ing.color }}
+                                      >
+                                        {ing.symbol} {ing.indoName.split(' ')[0]}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-[#A89F91] mt-4 line-clamp-2 leading-relaxed">
+                              {book.synopsis}
                             </p>
                           </div>
-                        </button>
-                      ))}
+
+                          {/* Action Buttons */}
+                          <div className="mt-5 pt-3 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setReadingBook(book)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1 shadow-sm"
+                              title="Baca langsung versi digital tanpa antre"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              <span>Baca Digital</span>
+                            </button>
+
+                            <div className="flex items-center gap-1.5">
+                              {currentUser?.role === 'admin' ? (
+                                <button
+                                  onClick={() => setActiveTab('archivist')}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                                >
+                                  Kelola Stok
+                                </button>
+                              ) : currentUser?.role === 'guru' ? (
+                                <button
+                                  onClick={() => {
+                                    setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
+                                    setActiveTab('mentor');
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30"
+                                >
+                                  Pinjam Kelas
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleRequestStudentLoan(book)}
+                                  disabled={!isAvailable}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${isAvailable
+                                    ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
+                                    : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
+                                    }`}
+                                >
+                                  {isAvailable ? 'Ajukan Pinjam' : 'Stok Habis'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* ==========================================
+            VIEW 2: ALCHEMICAL MIXER (RACIK BUKU)
+        ========================================== */}
+          {activeTab === 'mixer' && (
+            <div className="space-y-10">
+              <div className="text-center max-w-3xl mx-auto space-y-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-cinzel bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <FlaskConical className="w-3.5 h-3.5" />
+                  <span>THE TRANSMUTATION TABLE • PERACIK REKOMENDASI BUKU</span>
+                </div>
+                <h1 className="font-cinzel text-3xl sm:text-4xl font-bold gold-gradient-text">
+                  Alchemical Book Recommendation Mixer
+                </h1>
+                <p className="text-sm text-[#A89F91] leading-relaxed">
+                  Pilih <strong>1 hingga 3 Esensi Alkimia</strong>. Kuali Pustaka akan melakukan transmutasi dan menyingkap grimoire terbaik yang memiliki resonansi tertinggi dengan minat belajarmu hari ini!
+                </p>
+
+                {/* Preset Recipes */}
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                  <span className="text-xs text-[#A89F91] mr-1">Resep Cepat:</span>
+                  {PRESET_RECIPES.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => applyPresetRecipe(preset.ingredients)}
+                      className="text-xs px-3 py-1.5 rounded-full bg-[#1E1916] border border-[#D4AF37]/30 hover:border-[#D4AF37] text-[#F4E8C1] transition-all flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mixer Arena */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Left Column: 6 Alchemical Ingredients */}
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-cinzel text-lg font-bold text-[#F4E8C1] flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                      <span>Pilih Esensi Alkimia ({selectedIngredients.length}/3)</span>
+                    </h2>
+                    {selectedIngredients.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSelectedIngredients([]);
+                          setBrewedResult(null);
+                        }}
+                        className="text-xs text-[#A89F91] hover:text-rose-400 transition-colors"
+                      >
+                        Kosongkan Kuali
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {INGREDIENTS.map((ing) => {
+                      const isSelected = selectedIngredients.includes(ing.id);
+                      return (
+                        <div
+                          key={ing.id}
+                          onClick={() => toggleIngredient(ing.id)}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 relative overflow-hidden ${isSelected
+                            ? 'bg-[#1E1916] scale-[1.01] shadow-lg'
+                            : 'bg-[#1E1916]/60 hover:bg-[#1E1916] opacity-85 hover:opacity-100'
+                            }`}
+                          style={{
+                            borderColor: isSelected ? ing.color : 'rgba(212, 175, 55, 0.2)',
+                            boxShadow: isSelected ? `0 0 25px -5px ${ing.bgGlow}` : 'none'
+                          }}
+                        >
+                          <div className="flex items-start gap-3.5">
+                            <div
+                              className="w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border"
+                              style={{
+                                backgroundColor: ing.bgGlow,
+                                borderColor: ing.color,
+                                color: ing.color
+                              }}
+                            >
+                              {renderIngredientIcon(ing.iconType, 'w-5 h-5')}
+                              <span className="text-[10px] font-bold leading-none mt-0.5">
+                                {ing.symbol}
+                              </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1]">
+                                  {ing.name}
+                                </h3>
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border text-xs ${isSelected
+                                    ? 'bg-[#D4AF37] border-[#D4AF37] text-[#12100E]'
+                                    : 'border-white/20 text-[#A89F91]'
+                                    }`}
+                                >
+                                  {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                                </div>
+                              </div>
+                              <p className="text-xs font-semibold mt-0.5" style={{ color: ing.color }}>
+                                {ing.indoName}
+                              </p>
+                              <p className="text-[11px] text-[#A89F91] mt-1 line-clamp-2 leading-relaxed">
+                                {ing.desc}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right Column: Animated SVG Cauldron */}
+                <div className="lg:col-span-5">
+                  <div className="parchment-card rounded-2xl p-6 sm:p-8 text-center relative overflow-hidden">
+                    <div
+                      className="pointer-events-none absolute inset-x-10 top-12 h-48 rounded-full blur-3xl transition-colors duration-700 animate-pulse-glow"
+                      style={{
+                        background: `radial-gradient(circle, ${cauldronColor}55 0%, ${cauldronSecondaryColor}33 60%, transparent 100%)`
+                      }}
+                    />
+
+                    <span className="relative z-10 text-xs font-cinzel tracking-widest uppercase text-[#D4AF37]">
+                      CRUCIBLE OF WISDOM
+                    </span>
+                    <h3 className="relative z-10 font-cinzel text-xl font-bold text-[#F4E8C1] mt-1">
+                      {isBrewing
+                        ? 'Sedang Mentransmutasi...'
+                        : selectedIngredients.length === 0
+                          ? 'Kuali Menanti Bahan'
+                          : `${selectedIngredients.length} Esensi Siap Diracik`}
+                    </h3>
+
+                    {/* SVG Cauldron Graphic */}
+                    <div className="relative z-10 my-6 flex items-center justify-center">
+                      <div className="relative w-64 h-60 flex items-center justify-center">
+                        <div
+                          className={`absolute inset-0 rounded-full border border-dashed flex items-center justify-center ${isBrewing ? 'animate-rune-spin-fast' : 'animate-rune-spin'
+                            }`}
+                          style={{ borderColor: `${cauldronColor}66` }}
+                        >
+                          <span className="absolute -top-3 text-sm font-bold" style={{ color: cauldronColor }}>
+                            ☉
+                          </span>
+                          <span className="absolute -bottom-3 text-sm font-bold" style={{ color: cauldronSecondaryColor }}>
+                            ☽
+                          </span>
+                          <span className="absolute -left-3 text-sm font-bold text-[#D4AF37]">
+                            🜂
+                          </span>
+                          <span className="absolute -right-3 text-sm font-bold text-[#D4AF37]">
+                            🜁
+                          </span>
+                        </div>
+
+                        <svg
+                          viewBox="0 0 220 200"
+                          className={`w-52 h-48 transition-transform duration-500 ${isBrewing ? 'scale-110' : 'scale-100'
+                            }`}
+                        >
+                          {selectedIngredients.length > 0 && (
+                            <g>
+                              <circle cx="85" cy="70" r="6" fill={cauldronColor} className="bubble-1" />
+                              <circle cx="115" cy="65" r="8" fill={cauldronSecondaryColor} className="bubble-2" />
+                              <circle cx="135" cy="72" r="5" fill="#D4AF37" className="bubble-3" />
+                              <circle cx="98" cy="68" r="4" fill={cauldronColor} className="bubble-4" />
+                            </g>
+                          )}
+
+                          <ellipse cx="110" cy="75" rx="62" ry="14" fill="#2A2421" stroke="#D4AF37" strokeWidth="2.5" />
+                          <ellipse cx="110" cy="76" rx="54" ry="10" fill={cauldronColor} opacity="0.85" />
+                          <path d="M48 76 C35 130, 58 172, 110 172 C162 172, 185 130, 172 76 Z" fill="#171311" stroke="#D4AF37" strokeWidth="3" />
+                          <circle cx="42" cy="102" r="10" fill="none" stroke="#D4AF37" strokeWidth="3" />
+                          <circle cx="178" cy="102" r="10" fill="none" stroke="#D4AF37" strokeWidth="3" />
+                          <circle cx="110" cy="125" r="22" fill="none" stroke={cauldronColor} strokeWidth="1.8" strokeDasharray="4 2" />
+                          <text x="110" y="132" textAnchor="middle" fill="#D4AF37" fontSize="20" fontFamily="serif">
+                            {selectedIngredients.length > 0 ? INGREDIENTS.find((i) => i.id === selectedIngredients[0])?.symbol : '✦'}
+                          </text>
+                          <path d="M72 166 L62 188 M148 166 L158 188" stroke="#D4AF37" strokeWidth="4" strokeLinecap="round" />
+                          <path d="M90 190 Q110 165 130 190 Q110 180 90 190 Z" fill={isBrewing ? '#10B981' : '#D4AF37'} opacity="0.8" />
+                        </svg>
+                      </div>
                     </div>
 
-                    {/* Telemetry Stats */}
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#D4AF37]/20 text-center">
-                      <div className="p-2 rounded-lg bg-black/30">
-                        <p className="font-cinzel font-bold text-lg text-[#D4AF37]">
-                          {books.length}
-                        </p>
-                        <p className="text-[10px] text-[#A89F91]">Total Tomes</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-black/30">
-                        <p className="font-cinzel font-bold text-lg text-emerald-400">
-                          {books.filter((b) => b.availableStock > 0).length}
-                        </p>
-                        <p className="text-[10px] text-[#A89F91]">Ada di Rak</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-black/30">
-                        <p className="font-cinzel font-bold text-lg text-purple-400">
-                          {potionsBrewedCount}
-                        </p>
-                        <p className="text-[10px] text-[#A89F91]">Potions Brewed</p>
-                      </div>
-                    </div>
+                    {/* Brew Button */}
+                    <button
+                      onClick={handleTransmute}
+                      disabled={isBrewing || selectedIngredients.length === 0}
+                      className={`w-full py-3.5 rounded-xl font-cinzel font-bold text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2 shadow-xl ${selectedIngredients.length === 0 || isBrewing
+                        ? 'bg-white/10 text-[#A89F91] cursor-not-allowed'
+                        : 'bg-gradient-to-r from-emerald-500 via-amber-500 to-purple-600 text-[#12100E] hover:brightness-110'
+                        }`}
+                    >
+                      <FlaskConical className={`w-5 h-5 ${isBrewing ? 'animate-spin' : ''}`} />
+                      <span>{isBrewing ? 'Mentransmutasi Ramuan...' : 'Racik Buku di Kuali Alkimia'}</span>
+                    </button>
                   </div>
                 </div>
               </div>
-            </section>
 
-            {/* LEADERBOARD KELAS TER-LITERAT */}
-            <ClassLeaderboard
-              leaderboard={classLeaderboard}
-              monthLabel={formatMonthID(currentMonthKey)}
-              highlightClass={currentUserClassName}
-            />
+              {/* Brewed Results Showcase */}
+              {brewedResult && (
+                <section className="space-y-6 pt-6 animate-fadeIn">
+                  <div className="border-t border-[#D4AF37]/30 pt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-xs uppercase tracking-widest text-[#D4AF37] font-cinzel">
+                        TRANSMUTATION COMPLETE
+                      </span>
+                      <h2 className="font-cinzel text-2xl font-bold text-[#F4E8C1] mt-0.5">
+                        {brewedResult.potionName}
+                      </h2>
+                    </div>
+                    <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      {brewedResult.recommendations.length} Grimoire Paling Selaras
+                    </span>
+                  </div>
 
-            {/* LEGENDARY GRIMOIRES SHOWCASE */}
-            <section className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {brewedResult.recommendations.map((book) => {
+                      const isAvailable = book.availableStock > 0;
+                      return (
+                        <div
+                          key={book.id}
+                          className="parchment-card rounded-2xl p-4 flex flex-col justify-between space-y-3"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between text-xs mb-2">
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                                Resonansi {book.matchPercent}%
+                              </span>
+                              <span
+                                className={`text-[10px] font-semibold ${isAvailable ? 'text-emerald-400' : 'text-amber-400'
+                                  }`}
+                              >
+                                {isAvailable ? `${book.availableStock} Tersedia` : 'Stok Habis'}
+                              </span>
+                            </div>
+
+                            <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1] line-clamp-1">
+                              {book.title}
+                            </h3>
+                            <p className="text-[11px] text-[#A89F91] line-clamp-1">
+                              {book.author}
+                            </p>
+                            <p className="text-xs text-[#A89F91] mt-2 line-clamp-2">
+                              {book.synopsis}
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setReadingBook(book)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
+                            >
+                              <BookOpen className="w-3 h-3" />
+                              <span>Baca Digital</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (currentUser?.role === 'admin') setActiveTab('archivist');
+                                else if (currentUser?.role === 'guru') {
+                                  setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
+                                  setActiveTab('mentor');
+                                } else {
+                                  handleRequestStudentLoan(book);
+                                }
+                              }}
+                              disabled={currentUser?.role === 'siswa' && !isAvailable}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${currentUser?.role === 'siswa' && !isAvailable
+                                ? 'bg-white/5 text-[#A89F91] cursor-not-allowed'
+                                : 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
+                                }`}
+                            >
+                              {currentUser?.role === 'admin'
+                                ? 'Kelola'
+                                : currentUser?.role === 'guru'
+                                  ? 'Pinjam Kelas'
+                                  : isAvailable
+                                    ? 'Pinjam Fisik'
+                                    : 'Habis'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+
+          {/* ==========================================
+            VIEW 3: VAULT OF TOMES (KATALOG BUKU KURIKULUM BERTINGKAT)
+        ========================================== */}
+          {activeTab === 'vault' && (
+            <div className="space-y-6">
+              {/* BUTTON BAR KECIL KHUSUS ADMIN: KEMBALI KE DASHBOARD ADMIN */}
+              {currentUser?.role === 'admin' && (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#1A1512] border border-amber-500/45 shadow-md">
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-cinzel font-bold text-[11px]">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      Mode Admin di Katalog
+                    </span>
+                    <span className="text-[#A89F91]">
+                      Anda dapat membaca buku digital (PDF) serta memoderasi komentar &amp; rating pembaca pada Detail Buku.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('archivist');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#12100E] hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_0_16px_rgba(212,175,55,0.28)] cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Kembali ke Dashboard Admin</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-[#D4AF37] font-cinzel tracking-widest uppercase">
-                    <Star className="w-3.5 h-3.5 fill-[#D4AF37]" />
-                    <span>CURATED BY GRAND ARCHIVISTS</span>
-                  </div>
-                  <h2 className="font-cinzel text-2xl sm:text-3xl font-bold text-[#F4E8C1] mt-1">
-                    Legendary Grimoires (Koleksi Unggulan)
-                  </h2>
+                  <span className="text-xs font-cinzel tracking-widest text-[#D4AF37] uppercase">
+                    THE SACRED ARCHIVES • KURIKULUM SMP, SMA &amp; SMK (TKJ, BM, TKR/TR)
+                  </span>
+                  <h1 className="font-cinzel text-3xl font-bold text-[#F4E8C1] mt-0.5">
+                    Vault of Tomes ({filteredBooks.length} Koleksi)
+                  </h1>
+                  <p className="text-xs text-[#A89F91] mt-1">
+                    Navigasi kurikulum bertingkat: pilih Jenjang, Kelas, Jurusan SMK, dan Jenis Buku.
+                  </p>
                 </div>
-                <button
-                  onClick={() => setActiveTab('vault')}
-                  className="text-sm font-cinzel text-[#D4AF37] hover:underline flex items-center gap-1"
-                >
-                  <span>Lihat Seluruh 12 Grimoire di Vault</span>
-                  <span>→</span>
-                </button>
+
+                {/* Search & Availability Filter */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cari judul, kode, jurusan..."
+                      className="pl-8 pr-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] w-52 sm:w-64"
+                    />
+                  </div>
+                  <select
+                    value={availabilityFilter}
+                    onChange={(e) => setAvailabilityFilter(e.target.value)}
+                    className="px-3.5 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
+                  >
+                    <option value="all">Semua Ketersediaan ({books.length})</option>
+                    <option value="available">
+                      Stok Fisik Tersedia ({books.filter((b) => b.availableStock > 0).length})
+                    </option>
+                    <option value="out_of_stock">
+                      Stok Fisik Habis ({books.filter((b) => b.availableStock === 0).length})
+                    </option>
+                  </select>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {books
-                  .filter((b) => b.popular)
-                  .slice(0, 6)
-                  .map((book) => {
+              {/* =========================================================
+                NAVIGASI FILTER KURIKULUM BERTINGKAT (SMP, SMA, SMK 3 JURUSAN)
+            ========================================================= */}
+              <div className="parchment-card rounded-2xl p-5 sm:p-6 space-y-4 border border-[#D4AF37]/35">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D4AF37]/20 pb-3">
+                  <div>
+                    <span className="text-[11px] font-cinzel font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Navigasi Filter Kurikulum Bertingkat</span>
+                    </span>
+                    <p className="text-xs text-[#A89F91] mt-0.5">
+                      Memilih jurusan SMK (TKJ, BM, atau TKR/TR) otomatis menyertakan buku muatan nasional berlabel <strong className="text-[#F4E8C1]">Semua Jurusan</strong>.
+                    </p>
+                  </div>
+
+                  {/* Pintasan Cepat Uji Kurikulum */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-[#A89F91] mr-1">Pintasan Cepat:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJenjang('SMK');
+                        setSelectedKelas('10');
+                        setSelectedJurusan('TKJ');
+                        setSelectedJenisBuku('All');
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                    >
+                      SMK → Kelas 10 → TKJ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJenjang('SMK');
+                        setSelectedKelas('10');
+                        setSelectedJurusan('BM');
+                        setSelectedJenisBuku('All');
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all"
+                    >
+                      SMK → Kelas 10 → BM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJenjang('SMK');
+                        setSelectedKelas('10');
+                        setSelectedJurusan('TKR/TR');
+                        setSelectedJenisBuku('All');
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition-all"
+                    >
+                      SMK → Kelas 10 → TKR/TR
+                    </button>
+                    {(selectedJenjang !== 'All' ||
+                      selectedKelas !== 'All' ||
+                      selectedJurusan !== 'All' ||
+                      selectedJenisBuku !== 'All') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedJenjang('All');
+                            setSelectedKelas('All');
+                            setSelectedJurusan('All');
+                            setSelectedJenisBuku('All');
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
+                        >
+                          Reset Kurikulum
+                        </button>
+                      )}
+                  </div>
+                </div>
+
+                {/* TINGKAT 1: PILIH JENJANG (SMP, SMA, SMK, UMUM) */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-cinzel text-[#D4AF37]">
+                    1. PILIH JENJANG PENDIDIKAN:
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: 'All', label: 'Semua Jenjang' },
+                      { id: 'SMP', label: 'SMP (Kelas 7-9)' },
+                      { id: 'SMA', label: 'SMA (Kelas 10-12)' },
+                      { id: 'SMK', label: 'SMK (3 Jurusan)' },
+                      { id: 'Umum', label: 'Umum / Literasi' }
+                    ].map((item) => {
+                      const active = selectedJenjang === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedJenjang(item.id);
+                            setSelectedKelas('All');
+                            setSelectedJurusan('All');
+                          }}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-cinzel font-bold transition-all border ${active
+                            ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-md'
+                            : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-[#D4AF37]/50'
+                            }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* TINGKAT 2: PILIH KELAS BERDASARKAN JENJANG */}
+                {selectedJenjang !== 'All' && selectedJenjang !== 'Umum' && (
+                  <div className="space-y-1.5 pt-1 animate-fadeIn">
+                    <label className="block text-[11px] font-cinzel text-emerald-400">
+                      2. PILIH TINGKAT KELAS ({selectedJenjang}):
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedKelas('All')}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${selectedKelas === 'All'
+                          ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
+                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
+                          }`}
+                      >
+                        Semua Kelas {selectedJenjang}
+                      </button>
+                      {(KELAS_BY_JENJANG[selectedJenjang] || []).map((kls) => {
+                        const active = selectedKelas === kls;
+                        return (
+                          <button
+                            key={kls}
+                            type="button"
+                            onClick={() => setSelectedKelas(kls)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${active
+                              ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
+                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
+                              }`}
+                          >
+                            Kelas {kls}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TINGKAT 3: PILIH JURUSAN (KHUSUS SMK: TKJ, BM, TKR/TR, SEMUA JURUSAN) */}
+                {selectedJenjang === 'SMK' && (
+                  <div className="space-y-1.5 pt-1 animate-fadeIn">
+                    <label className="block text-[11px] font-cinzel text-sky-400">
+                      3. PILIH JURUSAN SMK (OTOMATIS MENYERTAKAN BUKU &apos;SEMUA JURUSAN&apos;):
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedJurusan('All')}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${selectedJurusan === 'All'
+                          ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
+                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
+                          }`}
+                      >
+                        Semua Jurusan SMK
+                      </button>
+                      {SMK_JURUSAN_OPTIONS.map((jur) => {
+                        const active = selectedJurusan === jur;
+                        return (
+                          <button
+                            key={jur}
+                            type="button"
+                            onClick={() => setSelectedJurusan(jur)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${active
+                              ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
+                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
+                              }`}
+                          >
+                            {jur === 'TKJ'
+                              ? 'TKJ (Teknik Komputer & Jaringan)'
+                              : jur === 'BM'
+                                ? 'BM (Bisnis & Manajemen)'
+                                : jur === 'TKR/TR'
+                                  ? 'TKR/TR (Teknik Kendaraan Ringan)'
+                                  : 'Hanya Muatan Nasional (Semua Jurusan)'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TINGKAT 4: PILIH JENIS BUKU */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-[11px] font-cinzel text-purple-300">
+                    {selectedJenjang === 'SMK'
+                      ? '4.'
+                      : selectedJenjang === 'SMP' || selectedJenjang === 'SMA'
+                        ? '3.'
+                        : '2.'}{' '}
+                    FILTER JENIS BUKU:
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJenisBuku('All')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${selectedJenisBuku === 'All'
+                        ? 'bg-purple-500 text-white border-purple-400 shadow'
+                        : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
+                        }`}
+                    >
+                      Semua Jenis Buku
+                    </button>
+                    {JENIS_BUKU_OPTIONS.map((jb) => {
+                      const active = selectedJenisBuku === jb;
+                      return (
+                        <button
+                          key={jb}
+                          type="button"
+                          onClick={() => setSelectedJenisBuku(jb)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${active
+                            ? 'bg-purple-500 text-white border-purple-400 shadow'
+                            : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
+                            }`}
+                        >
+                          {jb}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Active Breadcrumb Banner */}
+                {selectedJenjang !== 'All' && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      Filter Kurikulum Aktif:{' '}
+                      <strong className="text-white">
+                        {selectedJenjang}
+                        {selectedKelas !== 'All' ? ` → Kelas ${selectedKelas}` : ' → Semua Kelas'}
+                        {selectedJenjang === 'SMK' && selectedJurusan !== 'All'
+                          ? ` → Jurusan ${selectedJurusan} (+ Semua Jurusan)`
+                          : ''}
+                        {selectedJenisBuku !== 'All' ? ` → ${selectedJenisBuku}` : ''}
+                      </strong>
+                    </span>
+                    <span className="font-cinzel font-bold text-emerald-300">
+                      {filteredBooks.length} Buku Ditemukan
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Category Lore Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                {SCHOOLS_OF_LORE.map((cat) => {
+                  const active = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-4 py-2 rounded-xl text-xs transition-all whitespace-nowrap border text-left ${active
+                        ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] font-bold'
+                        : 'bg-[#1E1916] text-[#F4E8C1] border-[#D4AF37]/25 hover:border-[#D4AF37]/60'
+                        }`}
+                    >
+                      <span className="font-cinzel block">{cat.name}</span>
+                      <span className={`text-[10px] ${active ? 'text-[#12100E]/80' : 'text-[#A89F91]'}`}>
+                        {cat.indo}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Grid Books */}
+              {filteredBooks.length === 0 ? (
+                <div className="parchment-card rounded-2xl p-12 text-center space-y-3">
+                  <Compass className="w-10 h-10 text-[#D4AF37] mx-auto" />
+                  <h3 className="font-cinzel text-lg font-bold text-[#F4E8C1]">
+                    Tidak Ada Buku pada Kombinasi Filter Ini
+                  </h3>
+                  <p className="text-xs text-[#A89F91]">
+                    Coba ubah filter jenjang/kelas/jurusan atau bersihkan kata kunci pencarian.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('All');
+                      setSelectedJenjang('All');
+                      setSelectedKelas('All');
+                      setSelectedJurusan('All');
+                      setSelectedJenisBuku('All');
+                      setAvailabilityFilter('all');
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-cinzel bg-[#D4AF37] text-[#12100E] font-bold"
+                  >
+                    Reset Seluruh Filter
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredBooks.map((book) => {
                     const isAvailable = book.availableStock > 0;
                     const visual = getBookCoverVisual(book);
                     return (
                       <div
                         key={book.id}
-                        className="parchment-card rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                        className="parchment-card rounded-2xl p-5 flex flex-col justify-between transition-all hover:-translate-y-1 shadow-md"
                       >
                         <div>
                           <div className="flex gap-4">
@@ -2667,95 +3470,120 @@ export default function App() {
                                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
                               ) : null}
-                              <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37]/90 font-cinzel relative z-10 pl-0.5">
-                                <span>✦</span>
-                                <span>{book.rating ? `${Number(book.rating).toFixed(1)}★` : 'Baru'}</span>
+                              <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37] relative z-10 pl-0.5">
+                                <span>{book.jenjang || 'Umum'}</span>
+                                <span>
+                                  {Number(book.rating) > 0
+                                    ? `${Number(book.rating).toFixed(1)}★`
+                                    : 'Baru'}
+                                </span>
                               </div>
                               <div className="text-center my-auto relative z-10">
                                 <span className="book-cover-rune text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
                                   {book.coverRune || visual.rune}
                                 </span>
                               </div>
-                              <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1]/90 line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
+                              <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1] line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
                                 {book.title}
                               </div>
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 truncate">
-                                  {book.category}
+                              <div className="flex flex-wrap items-center justify-between gap-1">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
+                                  {book.jenjang || 'Umum'} •{' '}
+                                  {book.kelas === 'Semua' ? 'Semua Kelas' : `Kelas ${book.kelas}`}
                                 </span>
                                 <span
-                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                    isAvailable
-                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                      : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                  }`}
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${isAvailable
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/40'
+                                    }`}
                                 >
                                   {isAvailable
-                                    ? `Sisa: ${book.availableStock}/${book.totalStock}`
-                                    : 'Stok Fisik Habis'}
+                                    ? `Stok: ${book.availableStock}/${book.totalStock}`
+                                    : 'Stok Habis'}
+                                </span>
+                              </div>
+
+                              {/* Badges Jurusan & Jenis Buku */}
+                              <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                                  {book.jurusan || 'Semua Jurusan'}
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                  {book.jenisBuku || 'Referensi'}
                                 </span>
                               </div>
 
                               <h3
                                 onClick={() => setInspectedBookId(book.id)}
-                                className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-1"
+                                className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-2"
                               >
                                 {book.title}
                               </h3>
-                              <p className="text-xs italic text-[#D4AF37]/90 line-clamp-1">
-                                &ldquo;{book.subtitle}&rdquo;
+                              <p className="text-xs text-[#A89F91] mt-0.5 truncate">
+                                {book.author} • <span className="font-mono text-[#D4AF37]">{book.kodeBuku}</span>
                               </p>
-                              <p className="text-xs text-[#A89F91] mt-1 truncate">
-                                Karya: {book.author}
-                              </p>
-
-                              <div className="flex flex-wrap gap-1 mt-2.5">
-                                {(book.ingredients || []).map((ingId) => {
-                                  const ing = INGREDIENTS.find((i) => i.id === ingId);
-                                  if (!ing) return null;
-                                  return (
-                                    <span
-                                      key={ingId}
-                                      className="text-[10px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10"
-                                      style={{ color: ing.color }}
-                                    >
-                                      {ing.symbol} {ing.indoName.split(' ')[0]}
-                                    </span>
-                                  );
-                                })}
-                              </div>
                             </div>
                           </div>
 
-                          <p className="text-xs text-[#A89F91] mt-4 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-[#A89F91] mt-3 line-clamp-2 leading-relaxed">
                             {book.synopsis}
                           </p>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="mt-5 pt-3 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setReadingBook(book)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1 shadow-sm"
-                            title="Baca langsung versi digital tanpa antre"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Baca Digital</span>
-                          </button>
+                        <div className="mt-4 pt-3 border-t border-[#D4AF37]/15 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setReadingBook(book)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              <span>Baca Digital</span>
+                            </button>
+
+                            {book.pdfUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPdfViewerBook(book)}
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                                title="Buka PDF Layar Penuh"
+                              >
+                                PDF
+                              </button>
+                            )}
+                          </div>
 
                           <div className="flex items-center gap-1.5">
-                            {currentUser?.role === 'admin' ? (
-                              <button
-                                onClick={() => setActiveTab('archivist')}
-                                className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
-                              >
-                                Kelola Stok
-                              </button>
-                            ) : currentUser?.role === 'guru' ? (
+                            <button
+                              onClick={() => {
+                                setModerationConfirm(null);
+                                setInspectedBookId(book.id);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1 ${currentUser?.role === 'admin'
+                                ? 'border border-amber-500/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 font-cinzel font-bold'
+                                : 'border border-[#D4AF37]/40 text-[#F4E8C1] hover:bg-[#D4AF37]/15'
+                                }`}
+                            >
+                              {currentUser?.role === 'admin' ? (
+                                <>
+                                  <ShieldAlert className="w-3.5 h-3.5" />
+                                  <span>
+                                    Detail &amp; Moderasi
+                                    {(book.reviews || []).length > 0
+                                      ? ` (${book.reviews.length})`
+                                      : ''}
+                                  </span>
+                                </>
+                              ) : (
+                                <span>Detail</span>
+                              )}
+                            </button>
+
+                            {currentUser?.role === 'admin' ? null : currentUser?.role === 'guru' ? (
                               <button
                                 onClick={() => {
                                   setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
@@ -2769,13 +3597,12 @@ export default function App() {
                               <button
                                 onClick={() => handleRequestStudentLoan(book)}
                                 disabled={!isAvailable}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${
-                                  isAvailable
-                                    ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                                    : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                                }`}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${isAvailable
+                                  ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
+                                  : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
+                                  }`}
                               >
-                                {isAvailable ? 'Ajukan Pinjam' : 'Stok Habis'}
+                                {isAvailable ? 'Pinjam' : 'Habis'}
                               </button>
                             )}
                           </div>
@@ -2783,911 +3610,57 @@ export default function App() {
                       </div>
                     );
                   })}
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* ==========================================
-            VIEW 2: ALCHEMICAL MIXER (RACIK BUKU)
-        ========================================== */}
-        {activeTab === 'mixer' && (
-          <div className="space-y-10">
-            <div className="text-center max-w-3xl mx-auto space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-cinzel bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                <FlaskConical className="w-3.5 h-3.5" />
-                <span>THE TRANSMUTATION TABLE • PERACIK REKOMENDASI BUKU</span>
-              </div>
-              <h1 className="font-cinzel text-3xl sm:text-4xl font-bold gold-gradient-text">
-                Alchemical Book Recommendation Mixer
-              </h1>
-              <p className="text-sm text-[#A89F91] leading-relaxed">
-                Pilih <strong>1 hingga 3 Esensi Alkimia</strong>. Kuali Pustaka akan melakukan transmutasi dan menyingkap grimoire terbaik yang memiliki resonansi tertinggi dengan minat belajarmu hari ini!
-              </p>
-
-              {/* Preset Recipes */}
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs text-[#A89F91] mr-1">Resep Cepat:</span>
-                {PRESET_RECIPES.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => applyPresetRecipe(preset.ingredients)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-[#1E1916] border border-[#D4AF37]/30 hover:border-[#D4AF37] text-[#F4E8C1] transition-all flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3 h-3 text-[#D4AF37]" />
-                    <span>{preset.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Mixer Arena */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: 6 Alchemical Ingredients */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-cinzel text-lg font-bold text-[#F4E8C1] flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                    <span>Pilih Esensi Alkimia ({selectedIngredients.length}/3)</span>
-                  </h2>
-                  {selectedIngredients.length > 0 && (
-                    <button
-                      onClick={() => {
-                        setSelectedIngredients([]);
-                        setBrewedResult(null);
-                      }}
-                      className="text-xs text-[#A89F91] hover:text-rose-400 transition-colors"
-                    >
-                      Kosongkan Kuali
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {INGREDIENTS.map((ing) => {
-                    const isSelected = selectedIngredients.includes(ing.id);
-                    return (
-                      <div
-                        key={ing.id}
-                        onClick={() => toggleIngredient(ing.id)}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 relative overflow-hidden ${
-                          isSelected
-                            ? 'bg-[#1E1916] scale-[1.01] shadow-lg'
-                            : 'bg-[#1E1916]/60 hover:bg-[#1E1916] opacity-85 hover:opacity-100'
-                        }`}
-                        style={{
-                          borderColor: isSelected ? ing.color : 'rgba(212, 175, 55, 0.2)',
-                          boxShadow: isSelected ? `0 0 25px -5px ${ing.bgGlow}` : 'none'
-                        }}
-                      >
-                        <div className="flex items-start gap-3.5">
-                          <div
-                            className="w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border"
-                            style={{
-                              backgroundColor: ing.bgGlow,
-                              borderColor: ing.color,
-                              color: ing.color
-                            }}
-                          >
-                            {renderIngredientIcon(ing.iconType, 'w-5 h-5')}
-                            <span className="text-[10px] font-bold leading-none mt-0.5">
-                              {ing.symbol}
-                            </span>
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1]">
-                                {ing.name}
-                              </h3>
-                              <div
-                                className={`w-5 h-5 rounded-full flex items-center justify-center border text-xs ${
-                                  isSelected
-                                    ? 'bg-[#D4AF37] border-[#D4AF37] text-[#12100E]'
-                                    : 'border-white/20 text-[#A89F91]'
-                                }`}
-                              >
-                                {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                              </div>
-                            </div>
-                            <p className="text-xs font-semibold mt-0.5" style={{ color: ing.color }}>
-                              {ing.indoName}
-                            </p>
-                            <p className="text-[11px] text-[#A89F91] mt-1 line-clamp-2 leading-relaxed">
-                              {ing.desc}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Right Column: Animated SVG Cauldron */}
-              <div className="lg:col-span-5">
-                <div className="parchment-card rounded-2xl p-6 sm:p-8 text-center relative overflow-hidden">
-                  <div
-                    className="pointer-events-none absolute inset-x-10 top-12 h-48 rounded-full blur-3xl transition-colors duration-700 animate-pulse-glow"
-                    style={{
-                      background: `radial-gradient(circle, ${cauldronColor}55 0%, ${cauldronSecondaryColor}33 60%, transparent 100%)`
-                    }}
-                  />
-
-                  <span className="relative z-10 text-xs font-cinzel tracking-widest uppercase text-[#D4AF37]">
-                    CRUCIBLE OF WISDOM
-                  </span>
-                  <h3 className="relative z-10 font-cinzel text-xl font-bold text-[#F4E8C1] mt-1">
-                    {isBrewing
-                      ? 'Sedang Mentransmutasi...'
-                      : selectedIngredients.length === 0
-                      ? 'Kuali Menanti Bahan'
-                      : `${selectedIngredients.length} Esensi Siap Diracik`}
-                  </h3>
-
-                  {/* SVG Cauldron Graphic */}
-                  <div className="relative z-10 my-6 flex items-center justify-center">
-                    <div className="relative w-64 h-60 flex items-center justify-center">
-                      <div
-                        className={`absolute inset-0 rounded-full border border-dashed flex items-center justify-center ${
-                          isBrewing ? 'animate-rune-spin-fast' : 'animate-rune-spin'
-                        }`}
-                        style={{ borderColor: `${cauldronColor}66` }}
-                      >
-                        <span className="absolute -top-3 text-sm font-bold" style={{ color: cauldronColor }}>
-                          ☉
-                        </span>
-                        <span className="absolute -bottom-3 text-sm font-bold" style={{ color: cauldronSecondaryColor }}>
-                          ☽
-                        </span>
-                        <span className="absolute -left-3 text-sm font-bold text-[#D4AF37]">
-                          🜂
-                        </span>
-                        <span className="absolute -right-3 text-sm font-bold text-[#D4AF37]">
-                          🜁
-                        </span>
-                      </div>
-
-                      <svg
-                        viewBox="0 0 220 200"
-                        className={`w-52 h-48 transition-transform duration-500 ${
-                          isBrewing ? 'scale-110' : 'scale-100'
-                        }`}
-                      >
-                        {selectedIngredients.length > 0 && (
-                          <g>
-                            <circle cx="85" cy="70" r="6" fill={cauldronColor} className="bubble-1" />
-                            <circle cx="115" cy="65" r="8" fill={cauldronSecondaryColor} className="bubble-2" />
-                            <circle cx="135" cy="72" r="5" fill="#D4AF37" className="bubble-3" />
-                            <circle cx="98" cy="68" r="4" fill={cauldronColor} className="bubble-4" />
-                          </g>
-                        )}
-
-                        <ellipse cx="110" cy="75" rx="62" ry="14" fill="#2A2421" stroke="#D4AF37" strokeWidth="2.5" />
-                        <ellipse cx="110" cy="76" rx="54" ry="10" fill={cauldronColor} opacity="0.85" />
-                        <path d="M48 76 C35 130, 58 172, 110 172 C162 172, 185 130, 172 76 Z" fill="#171311" stroke="#D4AF37" strokeWidth="3" />
-                        <circle cx="42" cy="102" r="10" fill="none" stroke="#D4AF37" strokeWidth="3" />
-                        <circle cx="178" cy="102" r="10" fill="none" stroke="#D4AF37" strokeWidth="3" />
-                        <circle cx="110" cy="125" r="22" fill="none" stroke={cauldronColor} strokeWidth="1.8" strokeDasharray="4 2" />
-                        <text x="110" y="132" textAnchor="middle" fill="#D4AF37" fontSize="20" fontFamily="serif">
-                          {selectedIngredients.length > 0 ? INGREDIENTS.find((i) => i.id === selectedIngredients[0])?.symbol : '✦'}
-                        </text>
-                        <path d="M72 166 L62 188 M148 166 L158 188" stroke="#D4AF37" strokeWidth="4" strokeLinecap="round" />
-                        <path d="M90 190 Q110 165 130 190 Q110 180 90 190 Z" fill={isBrewing ? '#10B981' : '#D4AF37'} opacity="0.8" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* Brew Button */}
-                  <button
-                    onClick={handleTransmute}
-                    disabled={isBrewing || selectedIngredients.length === 0}
-                    className={`w-full py-3.5 rounded-xl font-cinzel font-bold text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2 shadow-xl ${
-                      selectedIngredients.length === 0 || isBrewing
-                        ? 'bg-white/10 text-[#A89F91] cursor-not-allowed'
-                        : 'bg-gradient-to-r from-emerald-500 via-amber-500 to-purple-600 text-[#12100E] hover:brightness-110'
-                    }`}
-                  >
-                    <FlaskConical className={`w-5 h-5 ${isBrewing ? 'animate-spin' : ''}`} />
-                    <span>{isBrewing ? 'Mentransmutasi Ramuan...' : 'Racik Buku di Kuali Alkimia'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Brewed Results Showcase */}
-            {brewedResult && (
-              <section className="space-y-6 pt-6 animate-fadeIn">
-                <div className="border-t border-[#D4AF37]/30 pt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-xs uppercase tracking-widest text-[#D4AF37] font-cinzel">
-                      TRANSMUTATION COMPLETE
-                    </span>
-                    <h2 className="font-cinzel text-2xl font-bold text-[#F4E8C1] mt-0.5">
-                      {brewedResult.potionName}
-                    </h2>
-                  </div>
-                  <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    {brewedResult.recommendations.length} Grimoire Paling Selaras
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {brewedResult.recommendations.map((book) => {
-                    const isAvailable = book.availableStock > 0;
-                    return (
-                      <div
-                        key={book.id}
-                        className="parchment-card rounded-2xl p-4 flex flex-col justify-between space-y-3"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                              Resonansi {book.matchPercent}%
-                            </span>
-                            <span
-                              className={`text-[10px] font-semibold ${
-                                isAvailable ? 'text-emerald-400' : 'text-amber-400'
-                              }`}
-                            >
-                              {isAvailable ? `${book.availableStock} Tersedia` : 'Stok Habis'}
-                            </span>
-                          </div>
-
-                          <h3 className="font-cinzel font-bold text-sm text-[#F4E8C1] line-clamp-1">
-                            {book.title}
-                          </h3>
-                          <p className="text-[11px] text-[#A89F91] line-clamp-1">
-                            {book.author}
-                          </p>
-                          <p className="text-xs text-[#A89F91] mt-2 line-clamp-2">
-                            {book.synopsis}
-                          </p>
-                        </div>
-
-                        <div className="pt-2 border-t border-[#D4AF37]/15 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setReadingBook(book)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
-                          >
-                            <BookOpen className="w-3 h-3" />
-                            <span>Baca Digital</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (currentUser?.role === 'admin') setActiveTab('archivist');
-                              else if (currentUser?.role === 'guru') {
-                                setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
-                                setActiveTab('mentor');
-                              } else {
-                                handleRequestStudentLoan(book);
-                              }
-                            }}
-                            disabled={currentUser?.role === 'siswa' && !isAvailable}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${
-                              currentUser?.role === 'siswa' && !isAvailable
-                                ? 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                                : 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                            }`}
-                          >
-                            {currentUser?.role === 'admin'
-                              ? 'Kelola'
-                              : currentUser?.role === 'guru'
-                              ? 'Pinjam Kelas'
-                              : isAvailable
-                              ? 'Pinjam Fisik'
-                              : 'Habis'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-          </div>
-        )}
-
-        {/* ==========================================
-            VIEW 3: VAULT OF TOMES (KATALOG BUKU KURIKULUM BERTINGKAT)
-        ========================================== */}
-        {activeTab === 'vault' && (
-          <div className="space-y-6">
-            {/* BUTTON BAR KECIL KHUSUS ADMIN: KEMBALI KE DASHBOARD ADMIN */}
-            {currentUser?.role === 'admin' && (
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#1A1512] border border-amber-500/45 shadow-md">
-                <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-cinzel font-bold text-[11px]">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Mode Admin di Katalog
-                  </span>
-                  <span className="text-[#A89F91]">
-                    Anda dapat membaca buku digital (PDF) serta memoderasi komentar &amp; rating pembaca pada Detail Buku.
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('archivist');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#12100E] hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_0_16px_rgba(212,175,55,0.28)] cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Kembali ke Dashboard Admin</span>
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs font-cinzel tracking-widest text-[#D4AF37] uppercase">
-                  THE SACRED ARCHIVES • KURIKULUM SMP, SMA &amp; SMK (TKJ, BM, TKR/TR)
-                </span>
-                <h1 className="font-cinzel text-3xl font-bold text-[#F4E8C1] mt-0.5">
-                  Vault of Tomes ({filteredBooks.length} Koleksi)
-                </h1>
-                <p className="text-xs text-[#A89F91] mt-1">
-                  Navigasi kurikulum bertingkat: pilih Jenjang, Kelas, Jurusan SMK, dan Jenis Buku.
-                </p>
-              </div>
-
-              {/* Search & Availability Filter */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari judul, kode, jurusan..."
-                    className="pl-8 pr-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] w-52 sm:w-64"
-                  />
-                </div>
-                <select
-                  value={availabilityFilter}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                >
-                  <option value="all">Semua Ketersediaan ({books.length})</option>
-                  <option value="available">
-                    Stok Fisik Tersedia ({books.filter((b) => b.availableStock > 0).length})
-                  </option>
-                  <option value="out_of_stock">
-                    Stok Fisik Habis ({books.filter((b) => b.availableStock === 0).length})
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            {/* =========================================================
-                NAVIGASI FILTER KURIKULUM BERTINGKAT (SMP, SMA, SMK 3 JURUSAN)
-            ========================================================= */}
-            <div className="parchment-card rounded-2xl p-5 sm:p-6 space-y-4 border border-[#D4AF37]/35">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D4AF37]/20 pb-3">
-                <div>
-                  <span className="text-[11px] font-cinzel font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5" />
-                    <span>Navigasi Filter Kurikulum Bertingkat</span>
-                  </span>
-                  <p className="text-xs text-[#A89F91] mt-0.5">
-                    Memilih jurusan SMK (TKJ, BM, atau TKR/TR) otomatis menyertakan buku muatan nasional berlabel <strong className="text-[#F4E8C1]">Semua Jurusan</strong>.
-                  </p>
-                </div>
-
-                {/* Pintasan Cepat Uji Kurikulum */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] text-[#A89F91] mr-1">Pintasan Cepat:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedJenjang('SMK');
-                      setSelectedKelas('10');
-                      setSelectedJurusan('TKJ');
-                      setSelectedJenisBuku('All');
-                    }}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
-                  >
-                    SMK → Kelas 10 → TKJ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedJenjang('SMK');
-                      setSelectedKelas('10');
-                      setSelectedJurusan('BM');
-                      setSelectedJenisBuku('All');
-                    }}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all"
-                  >
-                    SMK → Kelas 10 → BM
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedJenjang('SMK');
-                      setSelectedKelas('10');
-                      setSelectedJurusan('TKR/TR');
-                      setSelectedJenisBuku('All');
-                    }}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition-all"
-                  >
-                    SMK → Kelas 10 → TKR/TR
-                  </button>
-                  {(selectedJenjang !== 'All' ||
-                    selectedKelas !== 'All' ||
-                    selectedJurusan !== 'All' ||
-                    selectedJenisBuku !== 'All') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedJenjang('All');
-                        setSelectedKelas('All');
-                        setSelectedJurusan('All');
-                        setSelectedJenisBuku('All');
-                      }}
-                      className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
-                    >
-                      Reset Kurikulum
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* TINGKAT 1: PILIH JENJANG (SMP, SMA, SMK, UMUM) */}
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-cinzel text-[#D4AF37]">
-                  1. PILIH JENJANG PENDIDIKAN:
-                </label>
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { id: 'All', label: 'Semua Jenjang' },
-                    { id: 'SMP', label: 'SMP (Kelas 7-9)' },
-                    { id: 'SMA', label: 'SMA (Kelas 10-12)' },
-                    { id: 'SMK', label: 'SMK (3 Jurusan)' },
-                    { id: 'Umum', label: 'Umum / Literasi' }
-                  ].map((item) => {
-                    const active = selectedJenjang === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedJenjang(item.id);
-                          setSelectedKelas('All');
-                          setSelectedJurusan('All');
-                        }}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-cinzel font-bold transition-all border ${
-                          active
-                            ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-md'
-                            : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-[#D4AF37]/50'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* TINGKAT 2: PILIH KELAS BERDASARKAN JENJANG */}
-              {selectedJenjang !== 'All' && selectedJenjang !== 'Umum' && (
-                <div className="space-y-1.5 pt-1 animate-fadeIn">
-                  <label className="block text-[11px] font-cinzel text-emerald-400">
-                    2. PILIH TINGKAT KELAS ({selectedJenjang}):
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedKelas('All')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
-                        selectedKelas === 'All'
-                          ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
-                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
-                      }`}
-                    >
-                      Semua Kelas {selectedJenjang}
-                    </button>
-                    {(KELAS_BY_JENJANG[selectedJenjang] || []).map((kls) => {
-                      const active = selectedKelas === kls;
-                      return (
-                        <button
-                          key={kls}
-                          type="button"
-                          onClick={() => setSelectedKelas(kls)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
-                            active
-                              ? 'bg-emerald-500 text-[#12100E] border-emerald-400 shadow'
-                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-emerald-400/50'
-                          }`}
-                        >
-                          Kelas {kls}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TINGKAT 3: PILIH JURUSAN (KHUSUS SMK: TKJ, BM, TKR/TR, SEMUA JURUSAN) */}
-              {selectedJenjang === 'SMK' && (
-                <div className="space-y-1.5 pt-1 animate-fadeIn">
-                  <label className="block text-[11px] font-cinzel text-sky-400">
-                    3. PILIH JURUSAN SMK (OTOMATIS MENYERTAKAN BUKU &apos;SEMUA JURUSAN&apos;):
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedJurusan('All')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
-                        selectedJurusan === 'All'
-                          ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
-                          : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
-                      }`}
-                    >
-                      Semua Jurusan SMK
-                    </button>
-                    {SMK_JURUSAN_OPTIONS.map((jur) => {
-                      const active = selectedJurusan === jur;
-                      return (
-                        <button
-                          key={jur}
-                          type="button"
-                          onClick={() => setSelectedJurusan(jur)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-cinzel font-bold transition-all border ${
-                            active
-                              ? 'bg-sky-400 text-[#12100E] border-sky-300 shadow'
-                              : 'bg-[#12100E] text-[#F4E8C1] border-white/10 hover:border-sky-400/50'
-                          }`}
-                        >
-                          {jur === 'TKJ'
-                            ? 'TKJ (Teknik Komputer & Jaringan)'
-                            : jur === 'BM'
-                            ? 'BM (Bisnis & Manajemen)'
-                            : jur === 'TKR/TR'
-                            ? 'TKR/TR (Teknik Kendaraan Ringan)'
-                            : 'Hanya Muatan Nasional (Semua Jurusan)'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TINGKAT 4: PILIH JENIS BUKU */}
-              <div className="space-y-1.5 pt-1">
-                <label className="block text-[11px] font-cinzel text-purple-300">
-                  {selectedJenjang === 'SMK'
-                    ? '4.'
-                    : selectedJenjang === 'SMP' || selectedJenjang === 'SMA'
-                    ? '3.'
-                    : '2.'}{' '}
-                  FILTER JENIS BUKU:
-                </label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJenisBuku('All')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${
-                      selectedJenisBuku === 'All'
-                        ? 'bg-purple-500 text-white border-purple-400 shadow'
-                        : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
-                    }`}
-                  >
-                    Semua Jenis Buku
-                  </button>
-                  {JENIS_BUKU_OPTIONS.map((jb) => {
-                    const active = selectedJenisBuku === jb;
-                    return (
-                      <button
-                        key={jb}
-                        type="button"
-                        onClick={() => setSelectedJenisBuku(jb)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-semibold transition-all border ${
-                          active
-                            ? 'bg-purple-500 text-white border-purple-400 shadow'
-                            : 'bg-[#12100E] text-[#A89F91] border-white/10 hover:text-[#F4E8C1]'
-                        }`}
-                      >
-                        {jb}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Active Breadcrumb Banner */}
-              {selectedJenjang !== 'All' && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 flex flex-wrap items-center justify-between gap-2">
-                  <span>
-                    Filter Kurikulum Aktif:{' '}
-                    <strong className="text-white">
-                      {selectedJenjang}
-                      {selectedKelas !== 'All' ? ` → Kelas ${selectedKelas}` : ' → Semua Kelas'}
-                      {selectedJenjang === 'SMK' && selectedJurusan !== 'All'
-                        ? ` → Jurusan ${selectedJurusan} (+ Semua Jurusan)`
-                        : ''}
-                      {selectedJenisBuku !== 'All' ? ` → ${selectedJenisBuku}` : ''}
-                    </strong>
-                  </span>
-                  <span className="font-cinzel font-bold text-emerald-300">
-                    {filteredBooks.length} Buku Ditemukan
-                  </span>
                 </div>
               )}
             </div>
+          )}
 
-            {/* Category Lore Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {SCHOOLS_OF_LORE.map((cat) => {
-                const active = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-4 py-2 rounded-xl text-xs transition-all whitespace-nowrap border text-left ${
-                      active
-                        ? 'bg-[#D4AF37] text-[#12100E] border-[#D4AF37] font-bold'
-                        : 'bg-[#1E1916] text-[#F4E8C1] border-[#D4AF37]/25 hover:border-[#D4AF37]/60'
-                    }`}
-                  >
-                    <span className="font-cinzel block">{cat.name}</span>
-                    <span className={`text-[10px] ${active ? 'text-[#12100E]/80' : 'text-[#A89F91]'}`}>
-                      {cat.indo}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Grid Books */}
-            {filteredBooks.length === 0 ? (
-              <div className="parchment-card rounded-2xl p-12 text-center space-y-3">
-                <Compass className="w-10 h-10 text-[#D4AF37] mx-auto" />
-                <h3 className="font-cinzel text-lg font-bold text-[#F4E8C1]">
-                  Tidak Ada Buku pada Kombinasi Filter Ini
-                </h3>
-                <p className="text-xs text-[#A89F91]">
-                  Coba ubah filter jenjang/kelas/jurusan atau bersihkan kata kunci pencarian.
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                    setSelectedJenjang('All');
-                    setSelectedKelas('All');
-                    setSelectedJurusan('All');
-                    setSelectedJenisBuku('All');
-                    setAvailabilityFilter('all');
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-cinzel bg-[#D4AF37] text-[#12100E] font-bold"
-                >
-                  Reset Seluruh Filter
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredBooks.map((book) => {
-                  const isAvailable = book.availableStock > 0;
-                  const visual = getBookCoverVisual(book);
-                  return (
-                    <div
-                      key={book.id}
-                      className="parchment-card rounded-2xl p-5 flex flex-col justify-between transition-all hover:-translate-y-1 shadow-md"
-                    >
-                      <div>
-                        <div className="flex gap-4">
-                          <div
-                            onClick={() => setInspectedBookId(book.id)}
-                            className={`book-cover-art w-24 h-36 rounded-xl bg-gradient-to-br ${book.coverGradient || visual.coverGradient} border border-[#D4AF37]/50 p-2.5 flex flex-col justify-between cursor-pointer shrink-0 relative overflow-hidden group shadow-md`}
-                            style={{ background: book.coverGradientStyle || visual.gradient }}
-                          >
-                            {book.coverUrl ? (
-                              <img
-                                src={book.coverUrl}
-                                alt={book.title}
-                                className="absolute inset-0 w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            ) : null}
-                            <div className="book-cover-header flex justify-between items-center text-[10px] text-[#D4AF37] relative z-10 pl-0.5">
-                              <span>{book.jenjang || 'Umum'}</span>
-                              <span>
-                                {Number(book.rating) > 0
-                                  ? `${Number(book.rating).toFixed(1)}★`
-                                  : 'Baru'}
-                              </span>
-                            </div>
-                            <div className="text-center my-auto relative z-10">
-                              <span className="book-cover-rune text-2xl text-[#D4AF37] block group-hover:scale-125 transition-transform">
-                                {book.coverRune || visual.rune}
-                              </span>
-                            </div>
-                            <div className="book-cover-title text-[9px] font-cinzel text-center text-[#F4E8C1] line-clamp-2 border-t border-[#D4AF37]/30 pt-1 relative z-10">
-                              {book.title}
-                            </div>
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center justify-between gap-1">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
-                                {book.jenjang || 'Umum'} •{' '}
-                                {book.kelas === 'Semua' ? 'Semua Kelas' : `Kelas ${book.kelas}`}
-                              </span>
-                              <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                                  isAvailable
-                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/40'
-                                }`}
-                              >
-                                {isAvailable
-                                  ? `Stok: ${book.availableStock}/${book.totalStock}`
-                                  : 'Stok Habis'}
-                              </span>
-                            </div>
-
-                            {/* Badges Jurusan & Jenis Buku */}
-                            <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
-                                {book.jurusan || 'Semua Jurusan'}
-                              </span>
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                                {book.jenisBuku || 'Referensi'}
-                              </span>
-                            </div>
-
-                            <h3
-                              onClick={() => setInspectedBookId(book.id)}
-                              className="font-cinzel font-bold text-base text-[#F4E8C1] mt-2 hover:text-[#D4AF37] cursor-pointer line-clamp-2"
-                            >
-                              {book.title}
-                            </h3>
-                            <p className="text-xs text-[#A89F91] mt-0.5 truncate">
-                              {book.author} • <span className="font-mono text-[#D4AF37]">{book.kodeBuku}</span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-[#A89F91] mt-3 line-clamp-2 leading-relaxed">
-                          {book.synopsis}
-                        </p>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="mt-4 pt-3 border-t border-[#D4AF37]/15 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setReadingBook(book)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all flex items-center gap-1"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Baca Digital</span>
-                          </button>
-
-                          {book.pdfUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setPdfViewerBook(book)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
-                              title="Buka PDF Layar Penuh"
-                            >
-                              PDF
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => {
-                              setModerationConfirm(null);
-                              setInspectedBookId(book.id);
-                            }}
-                            className={`px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1 ${
-                              currentUser?.role === 'admin'
-                                ? 'border border-amber-500/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 font-cinzel font-bold'
-                                : 'border border-[#D4AF37]/40 text-[#F4E8C1] hover:bg-[#D4AF37]/15'
-                            }`}
-                          >
-                            {currentUser?.role === 'admin' ? (
-                              <>
-                                <ShieldAlert className="w-3.5 h-3.5" />
-                                <span>
-                                  Detail &amp; Moderasi
-                                  {(book.reviews || []).length > 0
-                                    ? ` (${book.reviews.length})`
-                                    : ''}
-                                </span>
-                              </>
-                            ) : (
-                              <span>Detail</span>
-                            )}
-                          </button>
-
-                          {currentUser?.role === 'admin' ? null : currentUser?.role === 'guru' ? (
-                            <button
-                              onClick={() => {
-                                setTeacherLoanForm((prev) => ({ ...prev, bookId: book.id }));
-                                setActiveTab('mentor');
-                              }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30"
-                            >
-                              Pinjam Kelas
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleRequestStudentLoan(book)}
-                              disabled={!isAvailable}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${
-                                isAvailable
-                                  ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                                  : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                              }`}
-                            >
-                              {isAvailable ? 'Pinjam' : 'Habis'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ==========================================
+          {/* ==========================================
             VIEW 4: SCHOLAR'S SANCTUM (ROLE SISWA)
         ========================================== */}
-        {activeTab === 'sanctum' && (
-          <ScholarsSanctumView
-            currentUser={currentUser}
-            currentRank={currentRank}
-            studentXp={studentXp}
-            potionsBrewedCount={potionsBrewedCount}
-            booksReadCount={booksReadCount}
-            books={books}
-            studentActiveLoans={studentActiveLoans}
-            studentPendingLoans={studentPendingLoans}
-            quests={quests}
-            badges={badges}
-            readingLogs={studentReadingLogs}
-            onClaimQuest={handleClaimQuest}
-            onOpenReturnModal={handleOpenReturnModal}
-            onOpenReader={(b) => setReadingBook(b)}
-            onInspectBook={(id) => setInspectedBookId(id)}
-            onOpenReadingLog={handleOpenReadingLog}
-            onBrowseBooks={() => setActiveTab('vault')}
-          />
-        )}
+          {activeTab === 'sanctum' && (
+            <ScholarsSanctumView
+              currentUser={currentUser}
+              currentRank={currentRank}
+              studentXp={studentXp}
+              potionsBrewedCount={potionsBrewedCount}
+              booksReadCount={booksReadCount}
+              books={books}
+              studentActiveLoans={studentActiveLoans}
+              studentPendingLoans={studentPendingLoans}
+              quests={quests}
+              badges={badges}
+              readingLogs={studentReadingLogs}
+              onClaimQuest={handleClaimQuest}
+              onOpenReturnModal={handleOpenReturnModal}
+              onOpenReader={(b) => setReadingBook(b)}
+              onInspectBook={(id) => setInspectedBookId(id)}
+              onOpenReadingLog={handleOpenReadingLog}
+              onBrowseBooks={() => setActiveTab('vault')}
+            />
+          )}
 
-        {/* ==========================================
+          {/* ==========================================
             VIEW 5: MENTOR'S SANCTUM (ROLE GURU)
         ========================================== */}
-        {activeTab === 'mentor' && (
-          <MentorsSanctumView
-            currentUser={currentUser}
-            books={books}
-            teacherLoans={teacherLoans}
-            teacherLoanForm={teacherLoanForm}
-            setTeacherLoanForm={setTeacherLoanForm}
-            onSubmitTeacherLoan={handleSubmitTeacherLoan}
-            readingLogs={readingLogs}
-            onGradeReadingLog={handleGradeReadingLog}
-            packageLoanForm={packageLoanForm}
-            setPackageLoanForm={setPackageLoanForm}
-            onSubmitPackageLoan={handleSubmitPackageLoan}
-            onCompletePackageLoan={handleCompletePackageLoan}
-            onOpenReader={(b) => setReadingBook(b)}
-            onInspectBook={(id) => setInspectedBookId(id)}
-          />
-        )}
+          {activeTab === 'mentor' && (
+            <MentorsSanctumView
+              currentUser={currentUser}
+              books={books}
+              teacherLoans={teacherLoans}
+              teacherLoanForm={teacherLoanForm}
+              setTeacherLoanForm={setTeacherLoanForm}
+              onSubmitTeacherLoan={handleSubmitTeacherLoan}
+              readingLogs={readingLogs}
+              onGradeReadingLog={handleGradeReadingLog}
+              packageLoanForm={packageLoanForm}
+              setPackageLoanForm={setPackageLoanForm}
+              onSubmitPackageLoan={handleSubmitPackageLoan}
+              onCompletePackageLoan={handleCompletePackageLoan}
+              onOpenReader={(b) => setReadingBook(b)}
+              onInspectBook={(id) => setInspectedBookId(id)}
+            />
+          )}
         </main>
       )}
 
@@ -3782,11 +3755,10 @@ export default function App() {
                     {inspectedBook.jenisBuku || 'Referensi'}
                   </span>
                   <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                      inspectedBook.availableStock > 0
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-amber-500/20 text-amber-300'
-                    }`}
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${inspectedBook.availableStock > 0
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-amber-500/20 text-amber-300'
+                      }`}
                   >
                     {inspectedBook.availableStock > 0
                       ? `Tersedia di Rak (${inspectedBook.availableStock}/${inspectedBook.totalStock})`
@@ -3998,11 +3970,10 @@ export default function App() {
                     return (
                       <div
                         key={rev.id}
-                        className={`p-3.5 rounded-xl border space-y-2 ${
-                          currentUser?.role === 'admin' && isLowRating
-                            ? 'bg-rose-950/20 border-rose-500/35'
-                            : 'bg-black/30 border-white/10'
-                        }`}
+                        className={`p-3.5 rounded-xl border space-y-2 ${currentUser?.role === 'admin' && isLowRating
+                          ? 'bg-rose-950/20 border-rose-500/35'
+                          : 'bg-black/30 border-white/10'
+                          }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                           <div className="flex flex-wrap items-center gap-2">
@@ -4134,16 +4105,14 @@ export default function App() {
                           key={num}
                           type="button"
                           onClick={() => setDetailReviewRating(num)}
-                          className={`px-2 py-0.5 rounded-md border text-[11px] font-bold flex items-center gap-0.5 transition-all ${
-                            detailReviewRating >= num
-                              ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
-                              : 'bg-black/30 border-white/10 text-[#A89F91]'
-                          }`}
+                          className={`px-2 py-0.5 rounded-md border text-[11px] font-bold flex items-center gap-0.5 transition-all ${detailReviewRating >= num
+                            ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
+                            : 'bg-black/30 border-white/10 text-[#A89F91]'
+                            }`}
                         >
                           <Star
-                            className={`w-3 h-3 ${
-                              detailReviewRating >= num ? 'fill-[#D4AF37]' : ''
-                            }`}
+                            className={`w-3 h-3 ${detailReviewRating >= num ? 'fill-[#D4AF37]' : ''
+                              }`}
                           />
                           <span>{num}</span>
                         </button>
@@ -4266,11 +4235,10 @@ export default function App() {
                         setInspectedBookId(null);
                       }}
                       disabled={inspectedBook.availableStock <= 0}
-                      className={`px-5 py-2.5 rounded-xl font-cinzel font-bold text-xs transition-all ${
-                        inspectedBook.availableStock > 0
-                          ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 shadow-lg'
-                          : 'bg-white/10 text-[#A89F91] cursor-not-allowed'
-                      }`}
+                      className={`px-5 py-2.5 rounded-xl font-cinzel font-bold text-xs transition-all ${inspectedBook.availableStock > 0
+                        ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 shadow-lg'
+                        : 'bg-white/10 text-[#A89F91] cursor-not-allowed'
+                        }`}
                     >
                       {inspectedBook.availableStock > 0
                         ? 'Ajukan Pinjam Fisik'
@@ -4339,11 +4307,10 @@ export default function App() {
                     type="button"
                     key={num}
                     onClick={() => setReviewRating(num)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all ${
-                      reviewRating >= num
-                        ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-black/30 border-white/10 text-[#A89F91]'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all ${reviewRating >= num
+                      ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
+                      : 'bg-black/30 border-white/10 text-[#A89F91]'
+                      }`}
                   >
                     <Star className={`w-3.5 h-3.5 ${reviewRating >= num ? 'fill-[#D4AF37]' : ''}`} />
                     <span>{num}</span>
