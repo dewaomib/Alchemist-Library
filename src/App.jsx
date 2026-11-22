@@ -444,7 +444,6 @@ export default function App() {
   const [selectedKelas, setSelectedKelas] = useState('All'); // 'All' | '7' | '8' | '9' | '10' | '11' | '12' | 'Semua'
   const [selectedJurusan, setSelectedJurusan] = useState('All'); // 'All' | 'TKJ' | 'BM' | 'TKR/TR' | 'Semua Jurusan'
   const [selectedJenisBuku, setSelectedJenisBuku] = useState('All'); // 'All' | 'Buku Paket Wajib' | 'Modul Praktik' | 'Fiksi / Novel' | 'Referensi'
-  const [availabilityFilter, setAvailabilityFilter] = useState('all'); // 'all' | 'available' | 'out_of_stock'
 
   // Alchemical Mixer state
   const [selectedIngredients, setSelectedIngredients] = useState(['wind', 'shadow']);
@@ -1155,8 +1154,8 @@ export default function App() {
 
     if (book.availableStock <= 0) {
       showToast(
-        'Stok Fisik Habis!',
-        `Eksemplar fisik "${book.title}" sedang habis di rak. Buka tombol "Baca Digital" untuk langsung membaca teks lengkapnya secara online!`,
+        'Peminjaman Fisik Belum Tersedia',
+        `Versi cetak "${book.title}" sedang tidak dapat dipinjam saat ini. Klik tombol "Baca Digital" untuk langsung membaca teks lengkapnya secara online!`,
         'purple'
       );
       return;
@@ -1248,8 +1247,8 @@ export default function App() {
     const qty = Number(teacherLoanForm.quantity) || 1;
     if (qty > targetBook.availableStock) {
       showToast(
-        'Jumlah Melebihi Stok Rak',
-        `Grimoire "${targetBook.title}" hanya tersedia ${targetBook.availableStock} eksemplar di rak saat ini. Silakan sesuaikan jumlah permintaan.`,
+        'Permintaan Belum Dapat Diproses',
+        `Permintaan ${qty} eksemplar "${targetBook.title}" belum dapat dipenuhi saat ini. Silakan sesuaikan jumlah atau koordinasikan dengan pustakawan.`,
         'purple'
       );
       return;
@@ -1410,8 +1409,10 @@ export default function App() {
     const qty = Math.max(1, Math.floor(Number(packageLoanForm.quantity) || 0));
     if (qty > targetBook.availableStock) {
       showToast(
-        'Stok Fisik Tidak Cukup',
-        `"${targetBook.title}" hanya tersedia ${targetBook.availableStock} eksemplar. Kurangi jumlah paket atau pilih judul lain.`,
+        currentUser.role === 'admin' ? 'Stok Fisik Tidak Cukup' : 'Permintaan Belum Dapat Diproses',
+        currentUser.role === 'admin'
+          ? `"${targetBook.title}" hanya tersedia ${targetBook.availableStock} eksemplar. Kurangi jumlah paket atau pilih judul lain.`
+          : `Paket ${qty} eksemplar "${targetBook.title}" belum dapat dipenuhi saat ini. Silakan sesuaikan jumlah atau hubungi pustakawan.`,
         'purple'
       );
       return;
@@ -1474,7 +1475,9 @@ export default function App() {
 
       showToast(
         'Paket Kelas Aktif di PostgreSQL!',
-        `${qty} eksemplar "${targetBook.title}" untuk ${className} • ${lessonHours}. Sisa stok: ${res.book?.availableStock ?? '-'}.`,
+        currentUser.role === 'admin'
+          ? `${qty} eksemplar "${targetBook.title}" untuk ${className} • ${lessonHours}. Sisa stok: ${res.book?.availableStock ?? '-'}.`
+          : `${qty} eksemplar "${targetBook.title}" untuk ${className} • ${lessonHours} berhasil diaktifkan.`,
         'emerald'
       );
     } catch (err) {
@@ -1501,7 +1504,9 @@ export default function App() {
 
       showToast(
         'Paket Kelas Selesai',
-        `${loan.quantity || 1} eksemplar "${loan.bookTitle}" untuk ${loan.className} telah dikembalikan & stok dipulihkan (${res.book?.availableStock ?? '-'}).`,
+        currentUser.role === 'admin'
+          ? `${loan.quantity || 1} eksemplar "${loan.bookTitle}" untuk ${loan.className} telah dikembalikan & stok dipulihkan (${res.book?.availableStock ?? '-'}).`
+          : `${loan.quantity || 1} eksemplar "${loan.bookTitle}" untuk ${loan.className} telah selesai & dikembalikan.`,
         'emerald'
       );
     } catch (err) {
@@ -2019,19 +2024,7 @@ export default function App() {
         jenisBuku: selectedJenisBuku
       });
 
-      let matchesAvailability = true;
-      if (availabilityFilter === 'available') {
-        matchesAvailability = book.availableStock > 0;
-      } else if (availabilityFilter === 'out_of_stock') {
-        matchesAvailability = book.availableStock === 0;
-      }
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesCurriculum &&
-        matchesAvailability
-      );
+      return matchesSearch && matchesCategory && matchesCurriculum;
     });
   }, [
     catalogBooks,
@@ -2041,8 +2034,7 @@ export default function App() {
     selectedJenjang,
     selectedKelas,
     selectedJurusan,
-    selectedJenisBuku,
-    availabilityFilter
+    selectedJenisBuku
   ]);
 
   // Dynamic Cauldron Colors
@@ -2589,9 +2581,9 @@ export default function App() {
                         </div>
                         <div className="p-2 rounded-lg bg-black/30">
                           <p className="font-cinzel font-bold text-lg text-emerald-400">
-                            {books.filter((b) => b.availableStock > 0).length}
+                            {books.filter((b) => b.hasDigital || b.pdfUrl).length}
                           </p>
-                          <p className="text-[10px] text-[#A89F91]">Ada di Rak</p>
+                          <p className="text-[10px] text-[#A89F91]">E-Grimoire Siap</p>
                         </div>
                         <div className="p-2 rounded-lg bg-black/30">
                           <p className="font-cinzel font-bold text-lg text-purple-400">
@@ -2638,7 +2630,6 @@ export default function App() {
                     .filter((b) => b.popular)
                     .slice(0, 6)
                     .map((book) => {
-                      const isAvailable = book.availableStock > 0;
                       const visual = getBookCoverVisual(book);
                       return (
                         <div
@@ -2675,19 +2666,12 @@ export default function App() {
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 truncate">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-semibold whitespace-nowrap">
                                     {book.category}
                                   </span>
-                                  <span
-                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isAvailable
-                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                      : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                      }`}
-                                  >
-                                    {isAvailable
-                                      ? `Sisa: ${book.availableStock}/${book.totalStock}`
-                                      : 'Stok Fisik Habis'}
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 whitespace-nowrap">
+                                    {book.jenisBuku || 'Referensi'}
                                   </span>
                                 </div>
 
@@ -2745,7 +2729,7 @@ export default function App() {
                                   onClick={() => setActiveTab('archivist')}
                                   className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
                                 >
-                                  Kelola Stok
+                                  Kelola di Dashboard
                                 </button>
                               ) : currentUser?.role === 'guru' ? (
                                 <button
@@ -2760,13 +2744,9 @@ export default function App() {
                               ) : (
                                 <button
                                   onClick={() => handleRequestStudentLoan(book)}
-                                  disabled={!isAvailable}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${isAvailable
-                                    ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                                    : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                                    }`}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all bg-[#D4AF37] text-[#12100E] hover:bg-amber-400"
                                 >
-                                  {isAvailable ? 'Ajukan Pinjam' : 'Stok Habis'}
+                                  Ajukan Pinjam
                                 </button>
                               )}
                             </div>
@@ -3000,22 +2980,18 @@ export default function App() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {brewedResult.recommendations.map((book) => {
-                      const isAvailable = book.availableStock > 0;
                       return (
                         <div
                           key={book.id}
                           className="parchment-card rounded-2xl p-4 flex flex-col justify-between space-y-3"
                         >
                           <div>
-                            <div className="flex items-center justify-between text-xs mb-2">
+                            <div className="flex flex-wrap items-center justify-between gap-1 text-xs mb-2">
                               <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                                 Resonansi {book.matchPercent}%
                               </span>
-                              <span
-                                className={`text-[10px] font-semibold ${isAvailable ? 'text-emerald-400' : 'text-amber-400'
-                                  }`}
-                              >
-                                {isAvailable ? `${book.availableStock} Tersedia` : 'Stok Habis'}
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-semibold">
+                                {book.jenjang || 'Umum'}
                               </span>
                             </div>
 
@@ -3051,19 +3027,13 @@ export default function App() {
                                   handleRequestStudentLoan(book);
                                 }
                               }}
-                              disabled={currentUser?.role === 'siswa' && !isAvailable}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${currentUser?.role === 'siswa' && !isAvailable
-                                ? 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                                : 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                                }`}
+                              className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all bg-[#D4AF37] text-[#12100E] hover:bg-amber-400"
                             >
                               {currentUser?.role === 'admin'
                                 ? 'Kelola'
                                 : currentUser?.role === 'guru'
                                   ? 'Pinjam Kelas'
-                                  : isAvailable
-                                    ? 'Pinjam Fisik'
-                                    : 'Habis'}
+                                  : 'Pinjam Fisik'}
                             </button>
                           </div>
                         </div>
@@ -3120,7 +3090,7 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Search & Availability Filter */}
+                {/* Search Input */}
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-[#D4AF37] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -3129,22 +3099,9 @@ export default function App() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Cari judul, kode, jurusan..."
-                      className="pl-8 pr-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] w-52 sm:w-64"
+                      className="pl-8 pr-3 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37] w-56 sm:w-72"
                     />
                   </div>
-                  <select
-                    value={availabilityFilter}
-                    onChange={(e) => setAvailabilityFilter(e.target.value)}
-                    className="px-3.5 py-2 rounded-xl text-xs bg-[#1E1916] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-[#D4AF37]"
-                  >
-                    <option value="all">Semua Ketersediaan ({books.length})</option>
-                    <option value="available">
-                      Stok Fisik Tersedia ({books.filter((b) => b.availableStock > 0).length})
-                    </option>
-                    <option value="out_of_stock">
-                      Stok Fisik Habis ({books.filter((b) => b.availableStock === 0).length})
-                    </option>
-                  </select>
                 </div>
               </div>
 
@@ -3438,7 +3395,6 @@ export default function App() {
                       setSelectedKelas('All');
                       setSelectedJurusan('All');
                       setSelectedJenisBuku('All');
-                      setAvailabilityFilter('all');
                     }}
                     className="px-4 py-2 rounded-xl text-xs font-cinzel bg-[#D4AF37] text-[#12100E] font-bold"
                   >
@@ -3448,7 +3404,6 @@ export default function App() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredBooks.map((book) => {
-                    const isAvailable = book.availableStock > 0;
                     const visual = getBookCoverVisual(book);
                     return (
                       <div
@@ -3489,29 +3444,16 @@ export default function App() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center justify-between gap-1">
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
+                              {/* Badges Kurikulum: Jenjang/Kelas, Jurusan & Jenis Buku */}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold whitespace-nowrap">
                                   {book.jenjang || 'Umum'} •{' '}
                                   {book.kelas === 'Semua' ? 'Semua Kelas' : `Kelas ${book.kelas}`}
                                 </span>
-                                <span
-                                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${isAvailable
-                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/40'
-                                    }`}
-                                >
-                                  {isAvailable
-                                    ? `Stok: ${book.availableStock}/${book.totalStock}`
-                                    : 'Stok Habis'}
-                                </span>
-                              </div>
-
-                              {/* Badges Jurusan & Jenis Buku */}
-                              <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold whitespace-nowrap">
                                   {book.jurusan || 'Semua Jurusan'}
                                 </span>
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-medium whitespace-nowrap">
                                   {book.jenisBuku || 'Referensi'}
                                 </span>
                               </div>
@@ -3596,13 +3538,9 @@ export default function App() {
                             ) : (
                               <button
                                 onClick={() => handleRequestStudentLoan(book)}
-                                disabled={!isAvailable}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all ${isAvailable
-                                  ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400'
-                                  : 'bg-white/5 text-[#A89F91] cursor-not-allowed'
-                                  }`}
+                                className="px-3 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-all bg-[#D4AF37] text-[#12100E] hover:bg-amber-400"
                               >
-                                {isAvailable ? 'Pinjam' : 'Habis'}
+                                Pinjam
                               </button>
                             )}
                           </div>
@@ -3742,27 +3680,17 @@ export default function App() {
               {/* Book Metadata */}
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-bold whitespace-nowrap">
                     {inspectedBook.jenjang || 'Umum'} •{' '}
                     {inspectedBook.kelas === 'Semua'
                       ? 'Semua Kelas'
                       : `Kelas ${inspectedBook.kelas}`}
                   </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold whitespace-nowrap">
                     {inspectedBook.jurusan || 'Semua Jurusan'}
                   </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-medium whitespace-nowrap">
                     {inspectedBook.jenisBuku || 'Referensi'}
-                  </span>
-                  <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${inspectedBook.availableStock > 0
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-amber-500/20 text-amber-300'
-                      }`}
-                  >
-                    {inspectedBook.availableStock > 0
-                      ? `Tersedia di Rak (${inspectedBook.availableStock}/${inspectedBook.totalStock})`
-                      : 'Stok Fisik Habis • Versi Digital Siap'}
                   </span>
                 </div>
 
@@ -4234,15 +4162,9 @@ export default function App() {
                         handleRequestStudentLoan(inspectedBook);
                         setInspectedBookId(null);
                       }}
-                      disabled={inspectedBook.availableStock <= 0}
-                      className={`px-5 py-2.5 rounded-xl font-cinzel font-bold text-xs transition-all ${inspectedBook.availableStock > 0
-                        ? 'bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 shadow-lg'
-                        : 'bg-white/10 text-[#A89F91] cursor-not-allowed'
-                        }`}
+                      className="px-5 py-2.5 rounded-xl font-cinzel font-bold text-xs transition-all bg-[#D4AF37] text-[#12100E] hover:bg-amber-400 shadow-lg"
                     >
-                      {inspectedBook.availableStock > 0
-                        ? 'Ajukan Pinjam Fisik'
-                        : 'Stok Fisik Habis'}
+                      Ajukan Pinjam Fisik
                     </button>
                   </>
                 )}

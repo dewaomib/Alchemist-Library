@@ -101,6 +101,7 @@ export default function MentorsSanctumView({
           packageLoans={teacherLoans}
           onCompletePackage={onCompletePackageLoan}
           onInspectBook={onInspectBook}
+          showStockInfo={false}
         />
       )}
 
@@ -150,23 +151,16 @@ export default function MentorsSanctumView({
               >
                 <option value="">-- Pilih Grimoire dari Katalog Pustaka --</option>
                 {books.map((b) => (
-                  <option
-                    key={b.id}
-                    value={b.id}
-                    disabled={b.availableStock <= 0}
-                  >
-                    {b.title} — Tersedia: {b.availableStock}/{b.totalStock} eksemplar {b.availableStock === 0 ? '(STOK HABIS)' : ''}
+                  <option key={b.id} value={b.id}>
+                    {b.title} ({b.jenjang || 'Umum'} • {b.jurusan || 'Semua Jurusan'})
                   </option>
                 ))}
               </select>
               {selectedBook && (
-                <div className="mt-2 text-xs text-[#A89F91] flex items-center gap-3">
+                <div className="mt-2 text-xs text-[#A89F91] flex flex-wrap items-center gap-3">
                   <span>
-                    Stok Fisik Tersedia:{' '}
-                    <strong className="text-emerald-400 font-bold">
-                      {selectedBook.availableStock}
-                    </strong>{' '}
-                    dari {selectedBook.totalStock} eksemplar
+                    Kode Buku:{' '}
+                    <span className="font-mono text-[#D4AF37]">{selectedBook.kodeBuku}</span>
                   </span>
                   <span>•</span>
                   <span>
@@ -184,7 +178,7 @@ export default function MentorsSanctumView({
               <input
                 type="number"
                 min="1"
-                max={selectedBook ? Math.max(1, selectedBook.availableStock) : 10}
+                max="100"
                 required
                 value={teacherLoanForm.quantity}
                 onChange={(e) =>
@@ -196,7 +190,7 @@ export default function MentorsSanctumView({
                 className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-[#12100E] border border-[#D4AF37]/30 text-[#F4E8C1] focus:outline-none focus:border-sky-400"
               />
               <span className="text-[10px] text-[#A89F91] mt-1 block">
-                Maksimal: {selectedBook ? selectedBook.availableStock : '-'} eksemplar
+                Masukkan jumlah buku yang dibutuhkan untuk kelas.
               </span>
             </div>
           </div>
@@ -269,9 +263,9 @@ export default function MentorsSanctumView({
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              disabled={!selectedBook || selectedBook.availableStock <= 0}
+              disabled={!selectedBook}
               className={`px-6 py-3 rounded-xl font-cinzel font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-lg ${
-                selectedBook && selectedBook.availableStock > 0
+                selectedBook
                   ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white hover:brightness-110'
                   : 'bg-white/10 text-[#A89F91] cursor-not-allowed'
               }`}

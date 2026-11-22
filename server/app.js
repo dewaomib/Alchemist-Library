@@ -933,10 +933,11 @@ function buildApiRouter() {
           throw Object.assign(new Error('Buku tidak ditemukan di database.'), { status: 404 });
         }
         if (book.stok_fisik < quantity) {
-          throw Object.assign(
-            new Error(`Stok fisik tidak mencukupi. Tersisa ${book.stok_fisik} eksemplar.`),
-            { status: 409 }
-          );
+          const errorMessage =
+            req.user?.role === 'ADMIN'
+              ? `Stok fisik tidak mencukupi. Tersisa ${book.stok_fisik} eksemplar.`
+              : 'Permintaan peminjaman fisik belum dapat dipenuhi saat ini. Silakan hubungi pustakawan atau gunakan fitur Baca Digital.';
+          throw Object.assign(new Error(errorMessage), { status: 409 });
         }
 
         if (!isTeacherOrAdmin) {

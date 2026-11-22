@@ -1676,6 +1676,7 @@ export default function ArchivistsChamberView({
                   packageLoans={loans}
                   onCompletePackage={onCompletePackageLoan}
                   onInspectBook={onInspectBook}
+                  showStockInfo={true}
                 />
               </section>
             )}

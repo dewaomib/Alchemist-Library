@@ -21,7 +21,8 @@ export default function ClassPackageDesk({
   onSubmit,
   packageLoans = [],
   onCompletePackage,
-  onInspectBook
+  onInspectBook,
+  showStockInfo = false
 }) {
   const selectedBook = books.find((book) => book.id === form.bookId) || null;
   const quantity = Math.max(1, Number(form.quantity) || 0);
@@ -30,6 +31,9 @@ export default function ClassPackageDesk({
   const remainingStock = selectedBook
     ? Math.max(0, availableStock - quantity)
     : 0;
+  const canSubmit = showStockInfo
+    ? Boolean(selectedBook && isStockEnough && form.className && form.lessonHours)
+    : Boolean(selectedBook && form.className && form.lessonHours);
 
   const activePackages = packageLoans.filter(
     (loan) => loan.isPackage && loan.status === 'approved'
@@ -51,9 +55,9 @@ export default function ClassPackageDesk({
             Pinjam Paket Kelas (1 Hari)
           </h2>
           <p className="text-xs text-[#A89F91] mt-1 max-w-2xl">
-            Pilih satu judul buku, tentukan jumlah eksemplar dan jam pelajaran.
-            Stok fisik berkurang otomatis, tenggat peminjaman satu hari, dan stok
-            kembali saat paket ditandai selesai.
+            {showStockInfo
+              ? 'Pilih satu judul buku, tentukan jumlah eksemplar dan jam pelajaran. Stok fisik berkurang otomatis, tenggat peminjaman satu hari, dan stok kembali saat paket ditandai selesai.'
+              : 'Pilih satu judul buku, tentukan jumlah eksemplar dan jam pelajaran. Tenggat peminjaman satu hari dan paket ditandai selesai setelah kegiatan belajar berakhir.'}
           </p>
         </div>
         <span className="text-xs px-3 py-1.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 flex items-center gap-1.5 w-fit">
@@ -90,10 +94,11 @@ export default function ClassPackageDesk({
                   <option
                     key={book.id}
                     value={book.id}
-                    disabled={book.availableStock <= 0}
+                    disabled={showStockInfo && book.availableStock <= 0}
                   >
-                    {book.title} — Stok: {book.availableStock}/{book.totalStock}
-                    {book.availableStock <= 0 ? ' (HABIS)' : ''}
+                    {showStockInfo
+                      ? `${book.title} — Stok: ${book.availableStock}/${book.totalStock}${book.availableStock <= 0 ? ' (HABIS)' : ''}`
+                      : `${book.title} (${book.jenjang || 'Umum'} • ${book.jurusan || 'Semua Jurusan'})`}
                   </option>
                 ))}
               </select>
@@ -101,28 +106,44 @@ export default function ClassPackageDesk({
 
             {selectedBook && (
               <div className="p-3 rounded-xl bg-black/30 border border-white/10 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                  <span className="text-[#A89F91]">
-                    Stok fisik tersedia:{' '}
-                    <strong className="text-emerald-300">{availableStock}</strong>{' '}
-                    dari {selectedBook.totalStock} eksemplar
-                  </span>
-                  <span className="text-[#A89F91]">
-                    Rak: <span className="text-[#F4E8C1]">{selectedBook.shelf}</span>
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-black/60 border border-white/5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#D4AF37]"
-                    style={{
-                      width: `${
-                        selectedBook.totalStock
-                          ? Math.min(100, (availableStock / selectedBook.totalStock) * 100)
-                          : 0
-                      }%`
-                    }}
-                  />
-                </div>
+                {showStockInfo ? (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="text-[#A89F91]">
+                        Stok fisik tersedia:{' '}
+                        <strong className="text-emerald-300">{availableStock}</strong>{' '}
+                        dari {selectedBook.totalStock} eksemplar
+                      </span>
+                      <span className="text-[#A89F91]">
+                        Rak: <span className="text-[#F4E8C1]">{selectedBook.shelf}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-black/60 border border-white/5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#D4AF37]"
+                        style={{
+                          width: `${
+                            selectedBook.totalStock
+                              ? Math.min(100, (availableStock / selectedBook.totalStock) * 100)
+                              : 0
+                          }%`
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="text-[#A89F91]">
+                      Kode Buku:{' '}
+                      <span className="font-mono text-[#D4AF37]">{selectedBook.kodeBuku}</span>
+                      {' • '}
+                      <span className="text-[#F4E8C1]">{selectedBook.jenjang || 'Umum'}</span>
+                    </span>
+                    <span className="text-[#A89F91]">
+                      Rak: <span className="text-[#F4E8C1]">{selectedBook.shelf}</span>
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -134,7 +155,7 @@ export default function ClassPackageDesk({
                 <input
                   type="number"
                   min="1"
-                  max={selectedBook ? Math.max(1, availableStock) : 35}
+                  max={showStockInfo ? (selectedBook ? Math.max(1, availableStock) : 35) : 100}
                   required
                   value={form.quantity}
                   onChange={(event) =>
@@ -206,36 +227,47 @@ export default function ClassPackageDesk({
             </div>
 
             {selectedBook && (
-              <div
-                className={`p-3 rounded-xl border text-[11px] flex items-start gap-2 ${
-                  isStockEnough
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-                    : 'bg-rose-500/10 border-rose-500/40 text-rose-200'
-                }`}
-              >
-                {isStockEnough ? (
+              showStockInfo ? (
+                <div
+                  className={`p-3 rounded-xl border text-[11px] flex items-start gap-2 ${
+                    isStockEnough
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                      : 'bg-rose-500/10 border-rose-500/40 text-rose-200'
+                  }`}
+                >
+                  {isStockEnough ? (
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>
+                    {isStockEnough
+                      ? `Stok mencukupi. Setelah paket diajukan, sisa stok fisik menjadi ${remainingStock} eksemplar dan tenggat pengembalian ${dueTomorrow}.`
+                      : `Stok tidak cukup. Diminta ${quantity} eksemplar, tetapi hanya tersedia ${availableStock}. Kurangi jumlah atau pilih judul lain.`}
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl border text-[11px] flex items-start gap-2 bg-sky-500/10 border-sky-500/30 text-sky-200">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                )}
-                <span>
-                  {isStockEnough
-                    ? `Stok mencukupi. Setelah paket diajukan, sisa stok fisik menjadi ${remainingStock} eksemplar dan tenggat pengembalian ${dueTomorrow}.`
-                    : `Stok tidak cukup. Diminta ${quantity} eksemplar, tetapi hanya tersedia ${availableStock}. Kurangi jumlah atau pilih judul lain.`}
-                </span>
-              </div>
+                  <span>
+                    Paket {quantity} eksemplar &ldquo;{selectedBook.title}&rdquo; siap diajukan dengan tenggat pengembalian {dueTomorrow}.
+                  </span>
+                </div>
+              )
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <span className="text-[10px] text-[#A89F91] flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-[#D4AF37]" />
-                Paket langsung aktif tanpa antrean admin; stok terpotong otomatis.
+                {showStockInfo
+                  ? 'Paket langsung aktif tanpa antrean admin; stok terpotong otomatis.'
+                  : 'Paket langsung aktif selama 1 hari sesuai jam pelajaran.'}
               </span>
               <button
                 type="submit"
-                disabled={!selectedBook || !isStockEnough || !form.className || !form.lessonHours}
+                disabled={!canSubmit}
                 className={`px-5 py-3 rounded-xl text-xs sm:text-sm font-cinzel font-bold flex items-center justify-center gap-2 transition-all ${
-                  selectedBook && isStockEnough && form.className && form.lessonHours
+                  canSubmit
                     ? 'bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#12100E] hover:brightness-110 shadow-lg'
                     : 'bg-white/5 text-[#A89F91] cursor-not-allowed border border-white/10'
                 }`}
