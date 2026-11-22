@@ -48,7 +48,8 @@ export default function EGrimoireReaderModal({
   onClose,
   onFinishReading,
   currentUser,
-  showToast
+  showToast,
+  onOpenPdfViewer
 }) {
   const { isModern } = useTheme();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -508,8 +509,27 @@ export default function EGrimoireReaderModal({
             </div>
           </div>
 
-          {/* Controls: Theme, Font Size, Narrator, Fullscreen, Close */}
+          {/* Controls: Flipbook 3D (if PDF), Theme, Font Size, Narrator, Fullscreen, Close */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {book.pdfUrl && onOpenPdfViewer && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenPdfViewer(book);
+                }}
+                className="px-2.5 py-1.5 rounded-lg border text-[10px] sm:text-xs font-cinzel font-bold flex items-center gap-1 transition-all hover:opacity-90"
+                style={{
+                  borderColor: 'rgba(16, 185, 129, 0.45)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                  color: isModern ? '#059669' : '#6EE7B7'
+                }}
+                title="Buka versi PDF dalam Interactive 3D Flipbook"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Flipbook 3D</span>
+              </button>
+            )}
             {/* Theme Toggle */}
             <button
               onClick={handleToggleTheme}

@@ -75,30 +75,76 @@ export function computeProgressPercent(chapterIndex, totalChapters) {
 export function normalizeReadingProgress(raw, totalChapters) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
 
+  const source = raw.source === 'pdf' ? 'pdf' : 'text';
+  const totalCandidate =
+    Number.isFinite(Number(totalChapters)) && Number(totalChapters) > 0
+      ? Number(totalChapters)
+      : Number.isFinite(Number(raw.totalChapters)) && Number(raw.totalChapters) > 0
+        ? Number(raw.totalChapters)
+        : null;
+  const hasTotal = totalCandidate !== null && totalCandidate > 0;
+
+  if (source === 'pdf') {
+    const rawPage = Number(raw.pageNumber ?? raw.halaman_terakhir ?? raw.lastPageRead);
+    const rawChapter = Number(raw.chapterIndex);
+    const hasValidPage = Number.isFinite(rawPage) && rawPage >= 1;
+    const hasValidChapter = Number.isFinite(rawChapter) && rawChapter >= 0;
+
+    if (!hasValidPage && !hasValidChapter && raw.chapterIndex !== 0) {
+      return null;
+    }
+
+    const basePage = hasValidPage
+      ? Math.floor(rawPage)
+      : hasValidChapter
+        ? Math.floor(rawChapter) + 1
+        : 1;
+    const pageNumber = hasTotal
+      ? Math.min(Math.floor(totalCandidate), Math.max(1, basePage))
+      : Math.max(1, basePage);
+    const chapterIndex = Math.max(0, pageNumber - 1);
+    const progressPercent = hasTotal
+      ? Math.min(100, Math.max(0, Math.round((pageNumber / Math.floor(totalCandidate)) * 100)))
+      : Math.min(100, Math.max(0, Math.round(Number(raw.progressPercent) || 0)));
+
+    return {
+      version: 1,
+      source: 'pdf',
+      chapterIndex,
+      chapterTitle:
+        typeof raw.chapterTitle === 'string' && raw.chapterTitle
+          ? raw.chapterTitle
+          : hasTotal
+            ? `Halaman ${pageNumber} / ${Math.floor(totalCandidate)}`
+            : `Halaman ${pageNumber}`,
+      pageNumber,
+      totalChapters: hasTotal ? Math.floor(totalCandidate) : 1,
+      scrollRatio: 0,
+      progressPercent,
+      updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : ''
+    };
+  }
+
   const chapterIndexRaw = Number(raw.chapterIndex);
   if (!Number.isFinite(chapterIndexRaw)) return null;
 
-  const source = raw.source === 'pdf' ? 'pdf' : 'text';
-  const total = Number(totalChapters);
-  const hasTotal = Number.isFinite(total) && total > 0;
   const chapterIndex = hasTotal
-    ? clampChapterIndex(chapterIndexRaw, total)
+    ? clampChapterIndex(chapterIndexRaw, totalCandidate)
     : Math.max(0, Math.floor(chapterIndexRaw));
 
-  const scrollRatio = source === 'pdf' ? 0 : clampScrollRatio(raw.scrollRatio);
-  const pageNumber = source === 'pdf' ? null : chapterIndex + 1;
-  const progressPercent = source === 'pdf'
-    ? 0
-    : hasTotal
-      ? computeProgressPercent(chapterIndex, total)
-      : Math.min(100, Math.max(0, Math.round(Number(raw.progressPercent) || 0)));
+  const scrollRatio = clampScrollRatio(raw.scrollRatio);
+  const pageNumber = chapterIndex + 1;
+  const progressPercent = hasTotal
+    ? computeProgressPercent(chapterIndex, totalCandidate)
+    : Math.min(100, Math.max(0, Math.round(Number(raw.progressPercent) || 0)));
 
   return {
     version: 1,
-    source,
+    source: 'text',
     chapterIndex,
     chapterTitle: typeof raw.chapterTitle === 'string' ? raw.chapterTitle : '',
     pageNumber,
+    totalChapters: hasTotal ? Math.floor(totalCandidate) : 1,
     scrollRatio,
     progressPercent,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : ''
@@ -122,21 +168,51 @@ export function createTextProgress({
     chapterIndex: index,
     chapterTitle,
     pageNumber: index + 1,
+    totalChapters: Math.max(1, Math.floor(safeTotal || 1)),
     scrollRatio: clampScrollRatio(scrollRatio),
     progressPercent: computeProgressPercent(index, safeTotal),
     updatedAt
   };
 }
 
-export function createPdfProgress(updatedAt = new Date().toISOString()) {
+export function createPdfProgress(input = {}) {
+  if (typeof input === 'string') {
+    return {
+      version: 1,
+      source: 'pdf',
+      chapterIndex: 0,
+      chapterTitle: 'Halaman 1',
+      pageNumber: 1,
+      totalChapters: 1,
+      scrollRatio: 0,
+      progressPercent: 0,
+      updatedAt: input
+    };
+  }
+
+  const {
+    pageNumber = 1,
+    totalPages = 1,
+    updatedAt = new Date().toISOString()
+  } = input || {};
+
+  const safeTotal = Number.isFinite(Number(totalPages)) && Number(totalPages) > 0
+    ? Math.floor(Number(totalPages))
+    : 1;
+  const parsedPage = Number(pageNumber);
+  const safePage = Number.isFinite(parsedPage)
+    ? Math.min(safeTotal, Math.max(1, Math.floor(parsedPage)))
+    : 1;
+
   return {
     version: 1,
     source: 'pdf',
-    chapterIndex: 0,
-    chapterTitle: '',
-    pageNumber: null,
+    chapterIndex: safePage - 1,
+    chapterTitle: `Halaman ${safePage} / ${safeTotal}`,
+    pageNumber: safePage,
+    totalChapters: safeTotal,
     scrollRatio: 0,
-    progressPercent: 0,
+    progressPercent: Math.min(100, Math.max(0, Math.round((safePage / safeTotal) * 100))),
     updatedAt
   };
 }

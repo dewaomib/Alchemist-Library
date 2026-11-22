@@ -4310,6 +4310,7 @@ export default function App() {
         onFinishReading={handleFinishDigitalReading}
         currentUser={currentUser}
         showToast={showToast}
+        onOpenPdfViewer={(targetBook) => setPdfViewerBook(targetBook)}
       />
 
       {/* ==========================================

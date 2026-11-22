@@ -79,6 +79,7 @@ export async function fetchRemoteReadingProgress(userId, bookId, source = 'text'
         chapterIndex: bm.chapterIndex ?? 0,
         chapterTitle: bm.chapterTitle || '',
         pageNumber: bm.lastPageRead ?? bm.halaman_terakhir ?? 1,
+        totalChapters: bm.totalChapters ?? totalChapters ?? 1,
         scrollRatio: bm.scrollRatio ?? 0,
         progressPercent: bm.progressPercent ?? 0,
         updatedAt: bm.updatedAt || new Date().toISOString()

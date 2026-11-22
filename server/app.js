@@ -1,7 +1,12 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import { Readable } from 'node:stream';
 import { Role } from '@prisma/client';
 import prisma from './prisma.js';
+import {
+  extractGoogleDriveId,
+  formatGoogleDriveDirectUrl
+} from '../src/utils/urlHelpers.js';
 import {
   attachSessionUser,
   clearSessionCookie,
@@ -1562,6 +1567,195 @@ function buildApiRouter() {
       affectedCount,
       book: updatedBook ? serializeBook(updatedBook) : null
     });
+  });
+
+  // ===========================================================================
+  // PDF STREAMING PROXY (BEBAS CORS + AUTO-KONVERSI GOOGLE DRIVE DIRECT STREAM)
+  // ===========================================================================
+  function isBlockedProxyHostname(hostname = '') {
+    const host = String(hostname || '').trim().toLowerCase();
+    if (!host) return true;
+    if (
+      host === 'localhost' ||
+      host === '::1' ||
+      host === '0.0.0.0' ||
+      host.endsWith('.local') ||
+      host.endsWith('.internal')
+    ) {
+      return true;
+    }
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) {
+      return true;
+    }
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+      return true;
+    }
+    return false;
+  }
+
+  function extractDriveConfirmUrl(html = '', driveId = '') {
+    if (!html || !driveId) return null;
+    const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
+    const confirmMatch = html.match(/name="confirm"\s+value="([^"]+)"/i);
+    const actionMatch = html.match(/action="(https:\/\/drive\.usercontent\.google\.com\/download[^"]*)"/i);
+
+    const base = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
+    const nextUrl = new URL(base);
+    nextUrl.searchParams.set('id', driveId);
+    nextUrl.searchParams.set('export', 'download');
+    nextUrl.searchParams.set('confirm', confirmMatch ? confirmMatch[1] : 't');
+    if (uuidMatch && uuidMatch[1]) {
+      nextUrl.searchParams.set('uuid', uuidMatch[1]);
+    }
+    return nextUrl.toString();
+  }
+
+  router.get('/pdf-proxy', async (req, res) => {
+    try {
+      let rawUrl = String(req.query.link_pdf || req.query.url || '').trim();
+      const bookId = String(req.query.bookId || '').trim();
+
+      if (!rawUrl && bookId) {
+        const dbBook = await prisma.book.findUnique({
+          where: { id: bookId },
+          select: { link_pdf: true }
+        });
+        rawUrl = String(dbBook?.link_pdf || '').trim();
+      }
+
+      if (!rawUrl) {
+        return res.status(400).json({ error: 'Parameter link_pdf atau url wajib diisi.' });
+      }
+
+      let parsedInput;
+      try {
+        parsedInput = new URL(rawUrl);
+      } catch {
+        return res.status(400).json({ error: 'Format URL PDF tidak valid.' });
+      }
+
+      if (parsedInput.protocol !== 'http:' && parsedInput.protocol !== 'https:') {
+        return res.status(400).json({ error: 'Hanya protokol HTTP/HTTPS yang didukung.' });
+      }
+
+      if (isBlockedProxyHostname(parsedInput.hostname)) {
+        return res.status(403).json({ error: 'Alamat host tujuan tidak diizinkan.' });
+      }
+
+      const driveId = extractGoogleDriveId(rawUrl);
+      const targetUrl = driveId ? formatGoogleDriveDirectUrl(rawUrl) : rawUrl;
+
+      const forwardHeaders = {
+        Accept: 'application/pdf,application/octet-stream,*/*;q=0.8'
+      };
+      if (driveId) {
+        forwardHeaders['User-Agent'] =
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+      }
+      if (req.headers.range) {
+        forwardHeaders.Range = String(req.headers.range);
+      }
+
+      const abortController = new AbortController();
+      res.on('close', () => {
+        if (!res.writableEnded) {
+          abortController.abort();
+        }
+      });
+
+      let upstream = await fetch(targetUrl, {
+        method: 'GET',
+        headers: forwardHeaders,
+        redirect: 'follow',
+        signal: abortController.signal
+      });
+
+      // Fallback retry with alternate User-Agent if upstream WAF rejects initial headers
+      if (upstream.status === 403 || upstream.status === 406) {
+        const retryHeaders = { Accept: '*/*' };
+        if (req.headers.range) retryHeaders.Range = String(req.headers.range);
+        if (!forwardHeaders['User-Agent']) {
+          retryHeaders['User-Agent'] =
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+        }
+        upstream = await fetch(targetUrl, {
+          method: 'GET',
+          headers: retryHeaders,
+          redirect: 'follow',
+          signal: abortController.signal
+        });
+      }
+
+      // Handle Google Drive large-file confirmation HTML page automatically
+      if (driveId && upstream.ok) {
+        const contentType = String(upstream.headers.get('content-type') || '').toLowerCase();
+        if (contentType.includes('text/html')) {
+          const html = await upstream.text();
+          const confirmUrl = extractDriveConfirmUrl(html, driveId);
+          if (confirmUrl) {
+            upstream = await fetch(confirmUrl, {
+              method: 'GET',
+              headers: forwardHeaders,
+              redirect: 'follow',
+              signal: abortController.signal
+            });
+          }
+        }
+      }
+
+      if (!upstream.ok && upstream.status !== 206) {
+        return res.status(upstream.status === 404 ? 404 : 502).json({
+          error: `Gagal mengambil file PDF dari sumber (${upstream.status}).`
+        });
+      }
+
+      const finalContentType = String(upstream.headers.get('content-type') || '').toLowerCase();
+      if (finalContentType.includes('text/html')) {
+        return res.status(422).json({
+          error: driveId
+            ? 'File Google Drive tidak dapat diunduh langsung. Pastikan akses berbagi diubah menjadi "Siapa saja yang memiliki link" (Publik).'
+            : 'Tautan tidak mengarah langsung ke dokumen PDF yang valid.'
+        });
+      }
+
+      res.status(upstream.status === 206 ? 206 : 200);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      const acceptRanges = upstream.headers.get('accept-ranges');
+      const contentLength = upstream.headers.get('content-length');
+      const contentRange = upstream.headers.get('content-range');
+      if (acceptRanges) res.setHeader('Accept-Ranges', acceptRanges);
+      if (contentLength) res.setHeader('Content-Length', contentLength);
+      if (contentRange) res.setHeader('Content-Range', contentRange);
+
+      if (!upstream.body) {
+        const arrayBuf = await upstream.arrayBuffer();
+        return res.end(Buffer.from(arrayBuf));
+      }
+
+      const nodeStream = Readable.fromWeb(upstream.body);
+      nodeStream.on('error', (streamErr) => {
+        if (!res.headersSent) {
+          res.status(502).json({ error: streamErr?.message || 'Streaming PDF terputus.' });
+        } else if (!res.writableEnded) {
+          res.end();
+        }
+      });
+
+      return nodeStream.pipe(res);
+    } catch (err) {
+      if (err?.name === 'AbortError') return undefined;
+      console.error('[PDF Proxy Error]', err?.message || err);
+      if (!res.headersSent) {
+        return res.status(502).json({
+          error: 'Tidak dapat memuat stream PDF dari server sumber.'
+        });
+      }
+      return undefined;
+    }
   });
 
   return router;
