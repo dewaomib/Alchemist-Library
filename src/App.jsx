@@ -2192,22 +2192,32 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Role-Aware Navigation Tabs */}
-                <nav className="flex items-center gap-1 sm:gap-2 order-4 lg:order-3 w-full lg:w-auto justify-center border-t lg:border-t-0 pt-2 lg:pt-0 border-[#D4AF37]/15 overflow-x-auto">
-                  {navTabs.map((tab) => {
+                {/* Role-Aware Navigation Tabs (Mobile 2-col grid prevents left-edge overflow clipping; Tablet scrollable from start; Desktop centered) */}
+                <nav
+                  aria-label="Navigasi Utama"
+                  className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 order-4 lg:order-3 w-full lg:w-auto sm:justify-start lg:justify-center border-t lg:border-t-0 pt-2 lg:pt-0 border-[#D4AF37]/15 sm:overflow-x-auto lg:overflow-visible"
+                >
+                  {navTabs.map((tab, idx) => {
                     const IconComponent = tab.icon;
                     const isActive = activeTab === tab.id;
+                    const spanFullOnThreeMobile = navTabs.length === 3 && idx === 0;
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`relative px-3 sm:px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${isActive
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`relative px-2.5 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-sm font-medium transition-all flex items-center gap-1.5 sm:gap-2 sm:shrink-0 sm:whitespace-nowrap min-w-0 ${
+                          spanFullOnThreeMobile ? 'col-span-2 sm:col-span-1 justify-center sm:justify-start' : ''
+                        } ${isActive
                           ? 'bg-[#D4AF37]/20 text-[#F4E8C1] border border-[#D4AF37]'
                           : 'text-[#A89F91] hover:text-[#F4E8C1] hover:bg-white/5 border border-transparent'
                           }`}
                       >
                         <IconComponent
-                          className={`w-4 h-4 ${isActive
+                          className={`w-4 h-4 shrink-0 ${isActive
                             ? 'text-[#D4AF37]'
                             : tab.highlight
                               ? 'text-emerald-400'
@@ -2218,22 +2228,22 @@ export default function App() {
                                   : 'text-[#A89F91]'
                             }`}
                         />
-                        <div className="text-left">
-                          <span className="font-cinzel font-semibold block leading-tight">
+                        <div className="text-left min-w-0 flex-1 sm:flex-none">
+                          <span className="font-cinzel font-semibold block leading-tight truncate">
                             {tab.label}
                           </span>
-                          <span className="text-[10px] text-[#A89F91] hidden sm:block">
+                          <span className="text-[10px] text-[#A89F91] block leading-tight truncate">
                             {tab.sub}
                           </span>
                         </div>
 
                         {tab.highlight && !isActive && (
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
                         )}
 
                         {tab.badgeCount > 0 && (
                           <span
-                            className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full text-[#12100E] ${tab.isAdmin
+                            className={`ml-auto sm:ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full text-[#12100E] shrink-0 ${tab.isAdmin
                               ? 'bg-amber-400'
                               : tab.isGuru
                                 ? 'bg-sky-400'
